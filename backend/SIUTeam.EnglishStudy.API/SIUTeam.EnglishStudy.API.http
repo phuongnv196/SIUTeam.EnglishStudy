@@ -1,0 +1,6 @@
+@SIUTeam.EnglishStudy.API_HostAddress = http://localhost:5073
+
+GET {{SIUTeam.EnglishStudy.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faster Whisper Speech Recognition</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .nav-links {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        .content {
+            padding: 30px;
+        }
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+        .upload-section:hover {
+            border-color: #4ca1af;
+            background: #e9ecef;
+        }
+        .upload-section.dragover {
+            border-color: #2c3e50;
+            background: #e3f2fd;
+        }
+        input[type="file"] {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 300px;
+        }
+        .btn {
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .result-section {
+            margin-top: 30px;
+        }
+        .result-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .result-text {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #4ca1af;
+        }
+        .result-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .meta-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .meta-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .meta-value {
+            font-size: 18px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            color: #4ca1af;
+            font-size: 18px;
+        }
+        .loading::after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #c3e6cb;
+        }
+        .segments-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .segment-item {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .segment-text {
+            flex: 1;
+            margin-right: 15px;
+        }
+        .segment-time {
+            font-size: 12px;
+            color: #666;
+            background: #f1f3f4;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .real-time-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .real-time-controls {
+            margin: 15px 0;
+        }
+        .recording-indicator {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: #ff4757;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">        <div class="header">
+            <h1>⚡ Faster Whisper Recognition</h1>
+            <p>High-speed speech-to-text with better performance</p>
+            <div class="nav-links">
+                <a href="/">🎤 Speech Recognition</a>
+                <a href="/talking_avatar_demo">👤 Talking Avatar</a>
+                <a href="/real_face_demo">😊 Real Face</a>
+                <a href="/tts_demo">🗣️ Text-to-Speech</a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <!-- File Upload Section -->
+            <div class="upload-section" id="uploadSection">
+                <h3>📁 Upload Audio File</h3>
+                <input type="file" id="audioFile" accept=".wav,.mp3,.m4a,.ogg,.flac,.aac">
+                <br>
+                <button onclick="transcribeFile()" id="transcribeBtn" class="btn btn-primary">
+                    ⚡ Fast Transcribe
+                </button>
+                <div style="font-size: 14px; color: #666; margin-top: 10px;">
+                    Supported: WAV, MP3, M4A, OGG, FLAC, AAC
+                </div>
+            </div>            <!-- Real-time Recording Section -->
+            <div class="real-time-section">
+                <h3>🎤 Real-time Recording</h3>
+                <p>Record audio in chunks and get near real-time transcription</p>
+                <div class="real-time-controls">
+                    <button onclick="startRealTimeRecording()" id="startRecBtn" class="btn btn-primary">
+                        🔴 Start Recording
+                    </button>
+                    <button onclick="stopRealTimeRecording()" id="stopRecBtn" class="btn btn-primary" disabled>
+                        ⏹️ Stop Recording
+                    </button>
+                </div>
+                <div class="recording-indicator" id="recordingIndicator">
+                    <div class="recording-dot"></div>
+                    <span>Recording... Transcribing in real-time</span>
+                </div>
+            </div>
+
+            <!-- Text to IPA Section -->
+            <div class="real-time-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h3>🔤 Text to IPA Converter</h3>
+                <p>Convert any text to International Phonetic Alphabet (IPA)</p>
+                <div style="margin: 15px 0;">
+                    <textarea id="ipaTextInput" 
+                              placeholder="Enter text to convert to IPA..." 
+                              style="width: 100%; padding: 15px; border-radius: 10px; border: none; resize: vertical; min-height: 80px; font-size: 16px;"></textarea>
+                </div>
+                <div class="real-time-controls">
+                    <button onclick="convertToIPA()" id="convertIpaBtn" class="btn btn-primary">
+                        🔤 Convert to IPA
+                    </button>
+                </div>
+                <div id="ipaResults" style="margin-top: 15px; display: none;">
+                    <!-- IPA results will appear here -->
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="result-section" id="results" style="display: none;">
+                <!-- Results will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let isRecording = false;
+        let audioChunks = [];
+        let chunkCount = 0;
+
+        // File upload transcription
+        async function transcribeFile() {
+            const fileInput = document.getElementById('audioFile');
+            const transcribeBtn = document.getElementById('transcribeBtn');
+            const results = document.getElementById('results');
+            
+            if (!fileInput.files[0]) {
+                showError('Please select an audio file first.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            transcribeBtn.disabled = true;
+            transcribeBtn.innerHTML = '⏳ Processing...';
+            
+            showLoading('Processing audio file with Faster Whisper...');
+            
+            try {
+                const response = await fetch('/transcribe', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult(result);
+                } else {
+                    showError(result.error);
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            } finally {
+                transcribeBtn.disabled = false;
+                transcribeBtn.innerHTML = '⚡ Fast Transcribe';
+            }
+        }
+
+        // Real-time recording
+        async function startRealTimeRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                const startBtn = document.getElementById('startRecBtn');
+                const stopBtn = document.getElementById('stopRecBtn');
+                const indicator = document.getElementById('recordingIndicator');
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                indicator.style.display = 'flex';
+                isRecording = true;
+                chunkCount = 0;
+                
+                showLoading('Starting real-time transcription...');
+                
+                mediaRecorder.ondataavailable = async (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                        
+                        // Gửi chunk để transcribe
+                        const formData = new FormData();
+                        formData.append('chunk', event.data, `chunk_${chunkCount++}.wav`);
+                        
+                        try {
+                            const response = await fetch('/transcribe_chunk', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (result.success && result.text.trim()) {
+                                showChunkResult(result, chunkCount);
+                            }
+                        } catch (error) {
+                            console.error('Chunk transcription error:', error);
+                        }
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                // Ghi âm từng chunk 3 giây
+                const recordChunk = () => {
+                    if (isRecording) {
+                        mediaRecorder.start();
+                        setTimeout(() => {
+                            if (mediaRecorder.state === 'recording') {
+                                mediaRecorder.stop();
+                                setTimeout(recordChunk, 100); // Khoảng nghỉ ngắn giữa các chunk
+                            }
+                        }, 3000);
+                    }
+                };
+                
+                recordChunk();
+                
+            } catch (error) {
+                showError('Microphone access denied: ' + error.message);
+            }
+        }
+
+        function stopRealTimeRecording() {
+            isRecording = false;
+            
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            
+            const startBtn = document.getElementById('startRecBtn');
+            const stopBtn = document.getElementById('stopRecBtn');
+            const indicator = document.getElementById('recordingIndicator');
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            indicator.style.display = 'none';
+              showSuccess('Recording stopped. All chunks processed.');
+        }
+
+        async function convertToIPA() {
+            const textInput = document.getElementById('ipaTextInput');
+            const convertBtn = document.getElementById('convertIpaBtn');
+            const resultsDiv = document.getElementById('ipaResults');
+            
+            const text = textInput.value.trim();
+            if (!text) {
+                showError('Please enter some text to convert.');
+                return;
+            }
+            
+            convertBtn.disabled = true;
+            convertBtn.textContent = '⏳ Converting...';
+            
+            try {
+                const response = await fetch('/text_to_ipa', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const result = await response.json();
+                  if (result.success && result.ipa.success) {
+                    resultsDiv.innerHTML = `
+                        <div style="background: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 10px; color: #333;">
+                            <h4>🔤 IPA Conversion Results</h4>
+                            <div style="margin: 15px 0;">
+                                <strong>Original Text:</strong><br>
+                                <div style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin: 5px 0; font-size: 16px;">
+                                    ${result.original_text}
+                                </div>
+                            </div>
+                            <div style="margin: 15px 0;">
+                                <strong>IPA (International Phonetic Alphabet):</strong><br>
+                                <div style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin: 5px 0; font-family: 'Lucida Sans Unicode', 'Arial Unicode MS', sans-serif; font-size: 18px;">
+                                    ${result.ipa.g2p_ipa}
+                                </div>
+                            </div>
+                            ${result.ipa.arpabet ? `
+                            <div style="margin: 15px 0;">
+                                <strong>ARPAbet (Reference):</strong><br>
+                                <div style="background: #fff3e0; padding: 10px; border-radius: 5px; margin: 5px 0; font-family: monospace; font-size: 14px;">
+                                    ${result.ipa.arpabet}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    resultsDiv.style.display = 'block';
+                } else {
+                    showError(`IPA conversion failed: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.textContent = '🔤 Convert to IPA';
+            }
+        }function showResult(result) {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            
+            const speedMultiplier = result.duration / result.processing_time;
+              // Build IPA display
+            let ipaDisplay = '';
+            if (result.ipa && result.ipa.success) {
+                ipaDisplay = `
+                    <div style="margin-top: 20px;">
+                        <h4>🔤 IPA Transcription</h4>
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                            <div style="margin-bottom: 10px;">
+                                <strong>IPA:</strong> 
+                                <span style="font-family: 'Lucida Sans Unicode', 'Arial Unicode MS', sans-serif; font-size: 18px;">
+                                    ${result.ipa.g2p_ipa}
+                                </span>
+                            </div>
+                            ${result.ipa.arpabet ? `
+                            <div style="margin-bottom: 10px;">
+                                <strong>ARPAbet:</strong> 
+                                <span style="font-family: monospace; font-size: 14px; color: #666;">
+                                    ${result.ipa.arpabet}
+                                </span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            results.innerHTML = `
+                <div class="result-card">
+                    <div class="result-header">
+                        <h3>📝 Transcription Result</h3>
+                        <span style="color: #28a745; font-weight: bold;">
+                            ${speedMultiplier.toFixed(1)}x Real-time Speed
+                        </span>
+                    </div>
+                    
+                    <div class="result-text">
+                        ${result.text}
+                    </div>
+                    
+                    ${ipaDisplay}
+                    
+                    <div class="result-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">File</div>
+                            <div class="meta-value">${result.filename}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Language</div>
+                            <div class="meta-value">${result.language} (${(result.language_probability * 100).toFixed(1)}%)</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Duration</div>
+                            <div class="meta-value">${result.duration.toFixed(1)}s</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Processing Time</div>
+                            <div class="meta-value">${result.processing_time}s</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Model</div>
+                            <div class="meta-value">${result.model}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Segments</div>
+                            <div class="meta-value">${result.segments.length}</div>
+                        </div>
+                    </div>
+                    
+                    ${result.segments.length > 0 ? `
+                        <div style="margin-top: 20px;">
+                            <h4>📍 Segments</h4>
+                            <div class="segments-container">
+                                ${result.segments.map(segment => `
+                                    <div class="segment-item">
+                                        <div class="segment-text">${segment.text}</div>
+                                        <div class="segment-time">${segment.start.toFixed(1)}s - ${segment.end.toFixed(1)}s</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function showChunkResult(result, chunkNum) {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            
+            const existingChunks = results.querySelector('.chunk-results');
+            let chunksContainer;
+            
+            if (!existingChunks) {
+                results.innerHTML = `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <h3>🔴 Real-time Chunks</h3>
+                            <span style="color: #28a745;">Live Transcription</span>
+                        </div>
+                        <div class="chunk-results"></div>
+                    </div>
+                `;
+                chunksContainer = results.querySelector('.chunk-results');
+            } else {
+                chunksContainer = existingChunks;
+            }
+              if (result.text.trim()) {
+                let ipaText = '';
+                if (result.ipa && result.ipa.success) {
+                    ipaText = ` <small style="color: #666;">[${result.ipa.g2p_ipa}]</small>`;
+                }
+                
+                const chunkDiv = document.createElement('div');
+                chunkDiv.className = 'segment-item';
+                chunkDiv.innerHTML = `
+                    <div class="segment-text">
+                        <strong>Chunk ${chunkNum}:</strong> ${result.text}${ipaText}
+                    </div>
+                    <div class="segment-time">${result.processing_time}s processing</div>
+                `;
+                chunksContainer.insertBefore(chunkDiv, chunksContainer.firstChild);
+                
+                // Giới hạn số chunk hiển thị
+                const chunks = chunksContainer.querySelectorAll('.segment-item');
+                if (chunks.length > 10) {
+                    chunks[chunks.length - 1].remove();
+                }
+            }
+        }
+
+        function showLoading(message) {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            results.innerHTML = `<div class="loading">${message}</div>`;
+        }
+
+        function showError(message) {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            results.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            results.innerHTML = `<div class="success">✅ ${message}</div>`;
+        }
+
+        // Drag and drop functionality
+        const uploadSection = document.getElementById('uploadSection');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('audioFile').files = files;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+.dashboardContainer {
+  min-height: 100vh;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.welcomeCard {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  
+  .title {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+  }
+}
+
+.statCard {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  }
+}
+
+.quickStatCard {
+  border-radius: 8px;
+  border: none;
+  text-align: center;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+}
+
+.activityCard {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  
+  :global(.ant-card-head-title) {
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+.actionCard {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  
+  :global(.ant-card-head-title) {
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+// Animation for cards
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.statCard,
+.quickStatCard,
+.activityCard,
+.actionCard {
+  animation: fadeInUp 0.6s ease-out;
+}

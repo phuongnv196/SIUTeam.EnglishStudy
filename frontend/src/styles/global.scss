@@ -1,0 +1,70 @@
+// Global reset and base styles for Ant Design integration
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+// Remove default button styles to let Ant Design handle them
+button {
+  all: unset;
+}
+
+// Ensure links work well with Ant Design
+a {
+  color: #1890ff;
+  text-decoration: none;
+
+  &:hover {
+    color: #40a9ff;
+  }
+}
+
+// Utility classes
+.text-center {
+  text-align: center;
+}
+
+.full-height {
+  height: 100vh;
+}
+
+.no-margin {
+  margin: 0;
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+
+  &:hover {
+    background: #a8a8a8;
+  }
+}

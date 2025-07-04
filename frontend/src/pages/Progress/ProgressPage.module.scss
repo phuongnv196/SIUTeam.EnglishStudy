@@ -1,0 +1,50 @@
+// Progress Page Styles
+.progressContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.progressCard {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f0f0;
+
+  :global(.ant-list-item) {
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.statsCard {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f0f0;
+}
+
+.achievementCard {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f0f0;
+
+  :global(.ant-timeline-item) {
+    padding-bottom: 16px;
+  }
+}
+
+.streakCard {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f0f0;
+  text-align: center;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .progressContainer {
+    padding: 0 16px;
+  }
+}

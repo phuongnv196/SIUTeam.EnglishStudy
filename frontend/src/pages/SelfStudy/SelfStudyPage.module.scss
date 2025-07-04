@@ -1,0 +1,183 @@
+.selfStudyContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.header {
+  margin-bottom: 24px;
+  
+  h2 {
+    color: #1890ff;
+    margin-bottom: 8px;
+  }
+}
+
+.overviewCard {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  :global(.ant-statistic-title) {
+    font-weight: 500;
+    color: #666;
+  }
+  
+  :global(.ant-statistic-content) {
+    font-size: 24px;
+    font-weight: bold;
+  }
+}
+
+.studyLayout {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  min-height: 600px;
+}
+
+.studySidebar {
+  background: #fafafa;
+  border-right: 1px solid #e8e8e8;
+  
+  @media (max-width: 991px) {
+    position: absolute;
+    z-index: 10;
+    height: 100%;
+  }
+}
+
+.sidebarHeader {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fff;
+  
+  h4 {
+    margin: 0;
+    color: #1890ff;
+    font-weight: 600;
+  }
+}
+
+.studyMenu {
+  border: none;
+  background: transparent;
+  
+  :global(.ant-menu-item) {
+    height: auto;
+    line-height: 1.4;
+    padding: 12px 16px;
+    margin: 4px 8px;
+    border-radius: 8px;
+    
+    &:hover {
+      background-color: rgba(24, 144, 255, 0.06);
+    }
+  }
+  
+  :global(.ant-menu-item-selected) {
+    background-color: rgba(24, 144, 255, 0.1);
+    border: 1px solid rgba(24, 144, 255, 0.2);
+  }
+}
+
+.menuItemContent {
+  width: 100%;
+}
+
+.menuItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.menuItemLabel {
+  font-weight: 500;
+  color: #333;
+}
+
+.menuProgress {
+  :global(.ant-progress-bg) {
+    transition: all 0.3s ease;
+  }
+}
+
+.studyContent {
+  padding: 0;
+  background: #fff;
+}
+
+.sectionHeader {
+  padding: 24px;
+  border-bottom: 1px solid #e8e8e8;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.sectionIcon {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sectionContent {
+  padding: 24px;
+  min-height: 500px;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .selfStudyContainer {
+    padding: 16px;
+  }
+  
+  .overviewCard {
+    :global(.ant-col) {
+      margin-bottom: 16px;
+    }
+  }
+  
+  .sectionHeader {
+    padding: 16px;
+    
+    .sectionIcon {
+      width: 48px;
+      height: 48px;
+      font-size: 24px;
+    }
+  }
+  
+  .sectionContent {
+    padding: 16px;
+  }
+}
+
+// Animation
+.studyLayout {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menuItemContent {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateX(2px);
+  }
+}

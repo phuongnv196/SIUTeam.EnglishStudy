@@ -1,0 +1,286 @@
+// Global App Styles for English Study Platform
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+// CSS Variables
+:root {
+  --primary-color: #667eea;
+  --secondary-color: #f093fb;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #ff4d4f;
+  --info-color: #1890ff;
+  
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --text-light: #a0aec0;
+  
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7fafc;
+  --bg-tertiary: #edf2f7;
+  
+  --border-color: #e2e8f0;
+  --border-color-light: #f1f3f4;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+  
+  --border-radius-sm: 6px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.3s ease-out;
+  --transition-slow: 0.5s ease-out;
+  
+  --container-max-width: 1200px;
+  --container-padding: 24px;
+}
+
+// Global app container
+.app {
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  
+  // Override Ant Design default styles
+  :global {
+    .ant-typography {
+      color: inherit;
+    }
+    
+    .ant-btn {
+      border-radius: var(--border-radius-md);
+      font-weight: 500;
+      transition: all var(--transition-normal);
+      
+      &.ant-btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        
+        &:hover, &:focus {
+          background: lighten(var(--primary-color), 10%);
+          border-color: lighten(var(--primary-color), 10%);
+        }
+      }
+      
+      &.ant-btn-lg {
+        height: 48px;
+        padding: 0 24px;
+        font-size: 16px;
+      }
+    }
+    
+    .ant-card {
+      border-radius: var(--border-radius-lg);
+      border: 1px solid var(--border-color-light);
+      box-shadow: var(--shadow-sm);
+      
+      &:hover {
+        box-shadow: var(--shadow-md);
+      }
+      
+      .ant-card-head {
+        border-bottom: 1px solid var(--border-color-light);
+        
+        .ant-card-head-title {
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+      }
+      
+      .ant-card-body {
+        padding: 24px;
+      }
+    }
+    
+    .ant-input, .ant-input-affix-wrapper {
+      border-radius: var(--border-radius-md);
+      border-color: var(--border-color);
+      
+      &:hover, &:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+      }
+    }
+    
+    .ant-select {
+      .ant-select-selector {
+        border-radius: var(--border-radius-md) !important;
+        border-color: var(--border-color) !important;
+        
+        &:hover, &:focus {
+          border-color: var(--primary-color) !important;
+        }
+      }
+    }
+    
+    .ant-carousel {
+      .ant-carousel-dots {
+        li {
+          button {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+          }
+          
+          &.ant-carousel-dot-active button {
+            background: var(--primary-color);
+          }
+        }
+      }
+    }
+    
+    .ant-rate {
+      color: var(--warning-color);
+      
+      .ant-rate-star:not(:last-child) {
+        margin-right: 4px;
+      }
+    }
+    
+    .ant-progress {
+      .ant-progress-bg {
+        border-radius: var(--border-radius-sm);
+      }
+      
+      .ant-progress-inner {
+        border-radius: var(--border-radius-sm);
+        background: var(--bg-tertiary);
+      }
+    }
+    
+    .ant-badge {
+      .ant-badge-ribbon {
+        border-radius: var(--border-radius-md);
+      }
+    }
+    
+    .ant-avatar {
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .ant-statistic {
+      .ant-statistic-title {
+        color: var(--text-secondary);
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+      
+      .ant-statistic-content {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+// Utility classes
+.textCenter {
+  text-align: center;
+}
+
+.textLeft {
+  text-align: left;
+}
+
+.textRight {
+  text-align: right;
+}
+
+.mb0 { margin-bottom: 0 !important; }
+.mb1 { margin-bottom: 8px !important; }
+.mb2 { margin-bottom: 16px !important; }
+.mb3 { margin-bottom: 24px !important; }
+.mb4 { margin-bottom: 32px !important; }
+.mb5 { margin-bottom: 40px !important; }
+
+.mt0 { margin-top: 0 !important; }
+.mt1 { margin-top: 8px !important; }
+.mt2 { margin-top: 16px !important; }
+.mt3 { margin-top: 24px !important; }
+.mt4 { margin-top: 32px !important; }
+.mt5 { margin-top: 40px !important; }
+
+.p0 { padding: 0 !important; }
+.p1 { padding: 8px !important; }
+.p2 { padding: 16px !important; }
+.p3 { padding: 24px !important; }
+.p4 { padding: 32px !important; }
+.p5 { padding: 40px !important; }
+
+// Gradient text utility
+.gradientText {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+// Animation utilities
+.fadeIn {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.slideUp {
+  animation: slideUp 0.6s ease-out;
+}
+
+.scaleIn {
+  animation: scaleIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  :root {
+    --container-padding: 16px;
+  }
+  
+  .app {
+    :global {
+      .ant-btn-lg {
+        height: 44px;
+        padding: 0 20px;
+        font-size: 15px;
+      }
+      
+      .ant-card-body {
+        padding: 20px;
+      }
+    }
+  }
+}

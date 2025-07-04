@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 AI Talking Avatar</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+          h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            background: rgba(255,255,255,0.1);
+        }
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .avatar-display {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            min-height: 400px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        input[type="text"], textarea, input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px 5px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .avatar-face {
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+            position: relative;
+            background: rgba(255, 220, 180, 0.8);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .eye {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 100px;
+        }
+        
+        .eye.left { left: 80px; }
+        .eye.right { right: 80px; }
+        
+        .pupil {
+            width: 20px;
+            height: 20px;
+            background: #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+        }
+        
+        .eyelid {
+            width: 100%;
+            height: 0;
+            background: rgba(255, 220, 180, 0.9);
+            position: absolute;
+            top: 0;
+            border-radius: 50px;
+            transition: height 0.1s ease;
+        }
+        
+        .mouth {
+            width: 60px;
+            height: 20px;
+            background: #8B4513;
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 10px;
+            transition: all 0.1s ease;
+            overflow: hidden;
+        }
+        
+        .teeth {
+            width: 100%;
+            height: 8px;
+            background: white;
+            position: absolute;
+            top: 0;
+        }
+        
+        .tongue {
+            width: 80%;
+            height: 60%;
+            background: #FF69B4;
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            border-radius: 10px 10px 5px 5px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.info { background: rgba(33, 150, 243, 0.9); }
+        .status.success { background: rgba(76, 175, 80, 0.9); }
+        .status.error { background: rgba(244, 67, 54, 0.9); }
+        
+        .animation-controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .phoneme-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 18px;
+            text-align: center;
+            min-height: 30px;
+        }
+        
+        .timing-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        
+        .timing-info div {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .example-texts {
+            margin-top: 20px;
+        }
+        
+        .example-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .example-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .avatar-face {
+                width: 250px;
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>    <div class="container">
+        <h1>🎭 AI Talking Avatar</h1>
+        <div class="nav-links">
+            <a href="/">🎤 Speech Recognition</a>
+            <a href="/talking_avatar_demo">👤 Talking Avatar</a>
+            <a href="/real_face_demo">😊 Real Face</a>
+            <a href="/tts_demo">🗣️ Text-to-Speech</a>
+        </div>
+        <p style="text-align: center; font-size: 18px; margin-bottom: 30px;">
+            Chuyển đổi text thành facial animation với lip-sync và eye blinking!
+        </p>
+        
+        <div class="demo-grid">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <h3>🎬 Animation Controls</h3>
+                
+                <form id="avatarForm">
+                    <div class="form-group">
+                        <label for="textInput">💬 Text to Animate:</label>
+                        <textarea id="textInput" name="text" placeholder="Enter text for the avatar to speak..." required>Hello world! This is a talking avatar demo.</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="durationInput">⏱️ Duration (seconds): <span id="durationValue">3.0</span></label>
+                        <input type="range" id="durationInput" name="duration" min="1" max="10" value="3" step="0.5" oninput="updateDurationValue()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fpsInput">🎞️ FPS: <span id="fpsValue">30</span></label>
+                        <input type="range" id="fpsInput" name="fps" min="15" max="60" value="30" step="5" oninput="updateFpsValue()">
+                    </div>
+                    
+                    <button type="submit" id="createButton">🎭 Create Animation</button>
+                    <button type="button" id="playButton" disabled>▶️ Play</button>
+                    <button type="button" id="pauseButton" disabled>⏸️ Pause</button>
+                    <button type="button" id="stopButton" disabled>⏹️ Stop</button>
+                </form>
+                
+                <div id="statusMessage"></div>
+                
+                <div class="example-texts">
+                    <h4>💡 Example Texts:</h4>
+                    <div class="example-item" onclick="setExampleText('Hello everyone! Welcome to AI-powered facial animation.')">
+                        "Hello everyone! Welcome to AI-powered facial animation."
+                    </div>
+                    <div class="example-item" onclick="setExampleText('The quick brown fox jumps over the lazy dog.')">
+                        "The quick brown fox jumps over the lazy dog."
+                    </div>
+                    <div class="example-item" onclick="setExampleText('Mary had a little lamb, its fleece was white as snow.')">
+                        "Mary had a little lamb, its fleece was white as snow."
+                    </div>
+                    <div class="example-item" onclick="setExampleText('Peter Piper picked a peck of pickled peppers.')">
+                        "Peter Piper picked a peck of pickled peppers."
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Avatar Display -->
+            <div class="avatar-display">
+                <h3>👤 Avatar</h3>
+                
+                <div class="avatar-face" id="avatarFace">
+                    <!-- Left Eye -->
+                    <div class="eye left">
+                        <div class="pupil" id="leftPupil"></div>
+                        <div class="eyelid" id="leftEyelid"></div>
+                    </div>
+                    
+                    <!-- Right Eye -->
+                    <div class="eye right">
+                        <div class="pupil" id="rightPupil"></div>
+                        <div class="eyelid" id="rightEyelid"></div>
+                    </div>
+                    
+                    <!-- Mouth -->
+                    <div class="mouth" id="mouth">
+                        <div class="teeth"></div>
+                        <div class="tongue"></div>
+                    </div>
+                </div>
+                
+                <div class="animation-controls">
+                    <div class="phoneme-display" id="phonemeDisplay">
+                        Ready to animate...
+                    </div>
+                    
+                    <div class="timing-info">
+                        <div>Frame: <span id="currentFrame">0</span></div>
+                        <div>Time: <span id="currentTime">0.00</span>s</div>
+                        <div>Phoneme: <span id="currentPhoneme">-</span></div>
+                        <div>Viseme: <span id="currentViseme">rest</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="/" style="color: white; text-decoration: none; margin-right: 20px;">← Back to Speech Recognition</a>
+            <a href="/lipsync_demo" style="color: white; text-decoration: none;">🎬 Advanced Lip-Sync Demo</a>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let animationData = null;
+        let animationTimer = null;
+        let currentFrame = 0;
+        let isPlaying = false;
+        let fps = 30;
+        
+        // DOM elements
+        const form = document.getElementById('avatarForm');
+        const textInput = document.getElementById('textInput');
+        const durationInput = document.getElementById('durationInput');
+        const fpsInput = document.getElementById('fpsInput');
+        const createButton = document.getElementById('createButton');
+        const playButton = document.getElementById('playButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusMessage = document.getElementById('statusMessage');
+        
+        // Avatar elements
+        const mouth = document.getElementById('mouth');
+        const leftEyelid = document.getElementById('leftEyelid');
+        const rightEyelid = document.getElementById('rightEyelid');
+        const phonemeDisplay = document.getElementById('phonemeDisplay');
+        const currentFrameSpan = document.getElementById('currentFrame');
+        const currentTimeSpan = document.getElementById('currentTime');
+        const currentPhonemeSpan = document.getElementById('currentPhoneme');
+        const currentVisemeSpan = document.getElementById('currentViseme');
+        
+        // Update slider values
+        function updateDurationValue() {
+            document.getElementById('durationValue').textContent = durationInput.value;
+        }
+        
+        function updateFpsValue() {
+            document.getElementById('fpsValue').textContent = fpsInput.value;
+            fps = parseInt(fpsInput.value);
+        }
+        
+        // Set example text
+        function setExampleText(text) {
+            textInput.value = text;
+            showStatus('✅ Example text loaded', 'success');
+        }
+        
+        // Show status message
+        function showStatus(message, type = 'info') {
+            statusMessage.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!textInput.value.trim()) {
+                showStatus('❌ Please enter text to animate', 'error');
+                return;
+            }
+            
+            createButton.disabled = true;
+            showStatus('🎭 Creating animation...', 'info');
+            
+            const formData = new FormData(form);
+            
+            try {
+                const response = await fetch('/create_talking_avatar', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    animationData = result;
+                    showStatus(`✅ Animation created! ${result.animation.total_frames} frames, ${result.animation.phonemes_count} phonemes`, 'success');
+                    
+                    // Enable play controls
+                    playButton.disabled = false;
+                    stopButton.disabled = false;
+                    
+                    // Show animation info
+                    phonemeDisplay.innerHTML = `
+                        <strong>Ready to play:</strong><br>
+                        Text: "${result.text}"<br>
+                        IPA: ${result.ipa_text}<br>
+                        Duration: ${result.animation.duration}s
+                    `;
+                    
+                } else {
+                    showStatus(`❌ Error: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            } finally {
+                createButton.disabled = false;
+            }
+        });
+        
+        // Play animation
+        playButton.addEventListener('click', function() {
+            if (!animationData) return;
+            
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            playButton.disabled = true;
+            pauseButton.disabled = false;
+            
+            showStatus('▶️ Playing animation...', 'info');
+            
+            const frameInterval = 1000 / fps;
+            
+            animationTimer = setInterval(() => {
+                if (currentFrame >= animationData.animation.total_frames) {
+                    stopAnimation();
+                    return;
+                }
+                
+                // Get current keyframe
+                const keyframes = animationData.animation.keyframes;
+                if (currentFrame < keyframes.length) {
+                    const keyframe = keyframes[currentFrame];
+                    updateAvatar(keyframe);
+                }
+                
+                currentFrame++;
+                
+            }, frameInterval);
+        });
+        
+        // Pause animation
+        pauseButton.addEventListener('click', function() {
+            if (animationTimer) {
+                clearInterval(animationTimer);
+                animationTimer = null;
+            }
+            isPlaying = false;
+            playButton.disabled = false;
+            pauseButton.disabled = true;
+            showStatus('⏸️ Animation paused', 'info');
+        });
+        
+        // Stop animation
+        stopButton.addEventListener('click', function() {
+            stopAnimation();
+        });
+        
+        function stopAnimation() {
+            if (animationTimer) {
+                clearInterval(animationTimer);
+                animationTimer = null;
+            }
+            isPlaying = false;
+            currentFrame = 0;
+            
+            // Reset avatar to neutral
+            resetAvatar();
+            
+            playButton.disabled = false;
+            pauseButton.disabled = true;
+            
+            showStatus('⏹️ Animation stopped', 'info');
+        }
+        
+        function updateAvatar(keyframe) {
+            // Update mouth
+            const mouthWidth = 60 + (keyframe.mouth_width * 40);
+            const mouthHeight = 20 + (keyframe.mouth_open * 30);
+            const lipRound = keyframe.lip_round * 20;
+            
+            mouth.style.width = mouthWidth + 'px';
+            mouth.style.height = mouthHeight + 'px';
+            mouth.style.borderRadius = lipRound + 'px';
+            
+            // Update eye blinks
+            const blinkHeight = keyframe.blink ? '100%' : '0%';
+            leftEyelid.style.height = blinkHeight;
+            rightEyelid.style.height = blinkHeight;
+            
+            // Update display info
+            currentFrameSpan.textContent = keyframe.frame;
+            currentTimeSpan.textContent = keyframe.time.toFixed(2);
+            currentPhonemeSpan.textContent = keyframe.phoneme || '-';
+            currentVisemeSpan.textContent = keyframe.viseme || 'rest';
+            
+            // Update phoneme display
+            phonemeDisplay.innerHTML = `
+                <strong>Current:</strong> /${keyframe.phoneme}/ → ${keyframe.viseme}<br>
+                <small>Frame ${keyframe.frame} / ${animationData.animation.total_frames}</small>
+            `;
+        }
+        
+        function resetAvatar() {
+            // Reset mouth to neutral
+            mouth.style.width = '60px';
+            mouth.style.height = '20px';
+            mouth.style.borderRadius = '10px';
+            
+            // Reset eyes
+            leftEyelid.style.height = '0%';
+            rightEyelid.style.height = '0%';
+            
+            // Reset display
+            currentFrameSpan.textContent = '0';
+            currentTimeSpan.textContent = '0.00';
+            currentPhonemeSpan.textContent = '-';
+            currentVisemeSpan.textContent = 'rest';
+            
+            phonemeDisplay.innerHTML = 'Ready to animate...';
+        }
+        
+        // Initialize
+        updateDurationValue();
+        updateFpsValue();
+        resetAvatar();
+        
+        // Random eye movement
+        setInterval(() => {
+            if (!isPlaying) {
+                const leftPupil = document.getElementById('leftPupil');
+                const rightPupil = document.getElementById('rightPupil');
+                
+                const randomX = (Math.random() - 0.5) * 10;
+                const randomY = (Math.random() - 0.5) * 10;
+                
+                leftPupil.style.transform = `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px))`;
+                rightPupil.style.transform = `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px))`;
+            }
+        }, 2000);
+        
+        // Random blinking when not playing
+        setInterval(() => {
+            if (!isPlaying && Math.random() < 0.1) {
+                leftEyelid.style.height = '100%';
+                rightEyelid.style.height = '100%';
+                
+                setTimeout(() => {
+                    leftEyelid.style.height = '0%';
+                    rightEyelid.style.height = '0%';
+                }, 150);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

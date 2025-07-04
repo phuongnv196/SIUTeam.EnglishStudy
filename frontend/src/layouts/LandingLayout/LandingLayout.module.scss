@@ -1,0 +1,141 @@
+// Landing Layout Styles
+.landingLayout {
+  width: 100%;
+}
+
+.landingHeader {
+  position: fixed !important;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  background: rgba(102, 126, 234, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  padding: 0 24px;
+  height: 70px;
+
+  &.scrolled {
+    background: rgba(102, 126, 234, 0.98) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  :global(.ant-menu-item) {
+    &:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    &.ant-menu-item-selected {
+      background: rgba(255, 255, 255, 0.2) !important;
+
+      &::after {
+        border-bottom-color: white !important;
+      }
+    }
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.desktopMenu {
+  display: block;
+}
+
+.desktopAuth {
+  display: flex;
+  align-items: center;
+}
+
+.mobileMenuButton {
+  display: none;
+}
+
+.landingContent {
+  margin-top: 70px;
+}
+
+.mobileDrawer {
+  :global(.ant-drawer-body) {
+    padding: 0;
+  }
+
+  :global(.ant-menu) {
+    margin-bottom: 24px;
+  }
+}
+
+.mobileAuthButtons {
+  padding: 0 24px 24px;
+}
+
+// Footer Styles
+.landingFooter {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+  padding: 60px 0 20px;
+  margin-top: 0;
+}
+
+.footerLinks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    margin-bottom: 12px;
+  }
+
+  a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: white;
+    }
+  }
+}
+
+.contactInfo {
+  p {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+  }
+}
+
+.footerBottom {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+
+  p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .desktopMenu,
+  .desktopAuth {
+    display: none;
+  }
+  
+  .mobileMenuButton {
+    display: block;
+  }
+  
+  .landingHeader {
+    padding: 0 16px;
+  }
+}
+
+// Smooth scrolling
+:global(html) {
+  scroll-behavior: smooth;
+}
