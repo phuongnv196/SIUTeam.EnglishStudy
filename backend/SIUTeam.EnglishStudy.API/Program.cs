@@ -4,6 +4,7 @@ using SIUTeam.EnglishStudy.Core.Authorization;
 using SIUTeam.EnglishStudy.Core.Enums;
 using SIUTeam.EnglishStudy.Core.Entities;
 using SIUTeam.EnglishStudy.API.Mapping;
+using SIUTeam.EnglishStudy.API.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -38,6 +39,32 @@ builder.Services.AddAuthentication(x =>
         ValidateAudience = false,
         ClockSkew = TimeSpan.Zero
     };
+    
+    // Configure JWT for SignalR
+    x.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            // Skip JWT authentication challenge for SignalR hubs
+            var path = context.HttpContext.Request.Path;
+            if (path.StartsWithSegments("/hubs"))
+            {
+                context.HandleResponse();
+                return Task.CompletedTask;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Configure Authorization with custom policies
@@ -66,6 +93,10 @@ builder.Services.AddAuthorization(options =>
     
     options.AddPolicy("TeacherOrAdmin", policy =>
         policy.RequireRole(UserRole.Teacher.ToString(), UserRole.Admin.ToString()));
+        
+    // Add policy for SignalR anonymous access
+    options.AddPolicy("SignalRAnonymous", policy =>
+        policy.RequireAssertion(_ => true)); // Always allow
 });
 
 // Register authorization handlers
@@ -140,9 +171,12 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("http://localhost:3000", "https://localhost:3001", "https://localhost:5174") // Add your frontend URLs
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials(); // Required for SignalR
     });
 });
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 // Register Infrastructure services
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -173,10 +207,27 @@ app.UseCors("AllowSpecificOrigin");
 
 app.UseHttpsRedirection();
 
+// Custom middleware to bypass authentication for SignalR negotiate
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/hubs/speaking/negotiate"))
+    {
+        // Skip authentication for SignalR negotiate endpoint
+        await next();
+    }
+    else
+    {
+        await next();
+    }
+});
+
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<SpeakingHub>("/hubs/speaking").AllowAnonymous();
 
 app.Run();

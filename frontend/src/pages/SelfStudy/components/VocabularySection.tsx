@@ -1,12 +1,17 @@
-import React, { useState } from 'react'
-import { Card, Row, Col, Button, Progress, Tag, List, Typography, Modal, Space } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Card, Row, Col, Button, Progress, Tag, List, Typography, Modal, Space, Alert, Spin, Divider } from 'antd'
 import { 
   PlayCircleOutlined, 
   SoundOutlined, 
   EyeOutlined,
   CheckCircleOutlined,
-  BookOutlined
+  BookOutlined,
+  ApiOutlined,
+  ExperimentOutlined,
+  LoadingOutlined
 } from '@ant-design/icons'
+import { useSpeakingHub } from '../../../hooks/useSpeakingHub'
+import textToSpeechService from '../../../services/textToSpeechService'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -25,6 +30,32 @@ const VocabularySection: React.FC = () => {
   const [selectedTopic, setSelectedTopic] = useState('business')
   const [viewModalVisible, setViewModalVisible] = useState(false)
   const [selectedWord, setSelectedWord] = useState<VocabularyItem | null>(null)
+  const [testModalVisible, setTestModalVisible] = useState(false)
+  const [loadingPronunciation, setLoadingPronunciation] = useState<number | null>(null)
+  const [pythonApiHealthy, setPythonApiHealthy] = useState<boolean | null>(null)
+
+  // Speaking Hub integration
+  const {
+    isConnected,
+    isConnecting,
+    connect,
+    disconnect,
+    getPronunciationFeedback,
+    pronunciationFeedback,
+    clearPronunciationFeedback,
+    createTalkingAvatar,
+    talkingAvatarData,
+    clearTalkingAvatarData
+  } = useSpeakingHub()
+
+  // Check Python API health on component mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      const isHealthy = await textToSpeechService.checkPythonAPIHealth()
+      setPythonApiHealthy(isHealthy)
+    }
+    checkHealth()
+  }, [])
 
   const topics = [
     { key: 'business', label: 'Business', color: '#1890ff', progress: 75 },
@@ -85,13 +116,91 @@ const VocabularySection: React.FC = () => {
     setViewModalVisible(true)
   }
 
-  const playPronunciation = (word: string) => {
-    // Simulate pronunciation play
-    console.log(`Playing pronunciation for: ${word}`)
+  const playPronunciation = async (word: string, wordId: number) => {
+    setLoadingPronunciation(wordId)
+    try {
+      // Use browser speech synthesis first
+      await textToSpeechService.speakWithBrowser(word)
+    } catch (error) {
+      console.error('Error playing pronunciation:', error)
+    } finally {
+      setLoadingPronunciation(null)
+    }
+  }
+
+  const handleGetIPAPronunciation = async (word: string) => {
+    if (!isConnected) {
+      // Try to connect first
+      await connect()
+    }
+    
+    if (isConnected) {
+      await getPronunciationFeedback(word)
+    }
+  }
+
+  const handleCreateAvatar = async (text: string) => {
+    if (!isConnected) {
+      await connect()
+    }
+    
+    if (isConnected) {
+      await createTalkingAvatar(text, 3.0, 30)
+    }
   }
 
   return (
     <div>
+      {/* API Status Section */}
+      <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
+        <Col span={24}>
+          <Alert
+            message={
+              <Space>
+                <ApiOutlined />
+                <span>API Status</span>
+              </Space>
+            }
+            description={
+              <div>
+                <div>Python API: {pythonApiHealthy === null ? 'Checking...' : pythonApiHealthy ? '✅ Healthy' : '❌ Offline'}</div>
+                <div>SignalR Hub: {isConnecting ? 'Connecting...' : isConnected ? '✅ Connected' : '❌ Disconnected'}</div>
+                <div style={{ marginTop: '8px' }}>
+                  <Space>
+                    <Button 
+                      size="small" 
+                      onClick={() => connect()}
+                      loading={isConnecting}
+                      disabled={isConnected}
+                    >
+                      Connect SignalR
+                    </Button>
+                    <Button 
+                      size="small" 
+                      onClick={() => disconnect()}
+                      disabled={!isConnected}
+                    >
+                      Disconnect
+                    </Button>
+                    <Button 
+                      size="small" 
+                      type="primary"
+                      onClick={() => setTestModalVisible(true)}
+                    >
+                      <ExperimentOutlined />
+                      Test Features
+                    </Button>
+                  </Space>
+                </div>
+              </div>
+            }
+            type={pythonApiHealthy && isConnected ? 'success' : 'warning'}
+            showIcon
+            style={{ marginBottom: '16px' }}
+          />
+        </Col>
+      </Row>
+
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col span={24}>
           <Title level={4}>📚 Chọn chủ đề từ vựng</Title>
@@ -147,10 +256,19 @@ const VocabularySection: React.FC = () => {
                 actions={[
                   <Button 
                     type="text" 
-                    icon={<SoundOutlined />}
-                    onClick={() => playPronunciation(item.word)}
+                    icon={loadingPronunciation === item.id ? <LoadingOutlined /> : <SoundOutlined />}
+                    onClick={() => playPronunciation(item.word, item.id)}
+                    loading={loadingPronunciation === item.id}
                   >
                     Phát âm
+                  </Button>,
+                  <Button 
+                    type="text" 
+                    icon={<ApiOutlined />}
+                    onClick={() => handleGetIPAPronunciation(item.word)}
+                    disabled={!isConnected}
+                  >
+                    IPA
                   </Button>,
                   <Button 
                     type="text" 
@@ -226,7 +344,7 @@ const VocabularySection: React.FC = () => {
                 <Button 
                   type="text" 
                   icon={<SoundOutlined />}
-                  onClick={() => playPronunciation(selectedWord.word)}
+                  onClick={() => selectedWord && playPronunciation(selectedWord.word, selectedWord.id)}
                   style={{ marginLeft: '8px' }}
                 />
               </div>
@@ -247,6 +365,146 @@ const VocabularySection: React.FC = () => {
             </Space>
           </div>
         )}
+      </Modal>
+
+      {/* Test Modal */}
+      <Modal
+        title={
+          <Space>
+            <ExperimentOutlined />
+            <span>Test Speaking Features</span>
+          </Space>
+        }
+        open={testModalVisible}
+        onCancel={() => {
+          setTestModalVisible(false)
+          clearPronunciationFeedback()
+          clearTalkingAvatarData()
+        }}
+        footer={[
+          <Button key="close" onClick={() => setTestModalVisible(false)}>
+            Close
+          </Button>
+        ]}
+        width={800}
+      >
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          {/* Connection Status */}
+          <Card size="small" title="Connection Status">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <div>
+                <Text strong>SignalR: </Text>
+                <Tag color={isConnected ? 'green' : 'red'}>
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </Tag>
+                {isConnecting && <Spin size="small" style={{ marginLeft: '8px' }} />}
+              </div>
+              <div>
+                <Text strong>Python API: </Text>
+                <Tag color={pythonApiHealthy ? 'green' : 'red'}>
+                  {pythonApiHealthy ? 'Healthy' : 'Offline'}
+                </Tag>
+              </div>
+            </Space>
+          </Card>
+
+          {/* IPA Pronunciation Test */}
+          <Card size="small" title="IPA Pronunciation Test">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Space>
+                <Button 
+                  onClick={() => handleGetIPAPronunciation('hello')}
+                  disabled={!isConnected}
+                >
+                  Test "hello"
+                </Button>
+                <Button 
+                  onClick={() => handleGetIPAPronunciation('entrepreneur')}
+                  disabled={!isConnected}
+                >
+                  Test "entrepreneur"
+                </Button>
+                <Button 
+                  onClick={() => handleGetIPAPronunciation('collaboration')}
+                  disabled={!isConnected}
+                >
+                  Test "collaboration"
+                </Button>
+              </Space>
+              
+              {pronunciationFeedback && (
+                <Alert
+                  message="Pronunciation Feedback"
+                  description={
+                    <div>
+                      <div><Text strong>Word:</Text> {pronunciationFeedback.originalText}</div>
+                      <div><Text strong>IPA:</Text> <Text code>{pronunciationFeedback.ipaNotation}</Text></div>
+                      <div><Text strong>ARPAbet:</Text> <Text code>{pronunciationFeedback.arpabet}</Text></div>
+                    </div>
+                  }
+                  type="success"
+                  showIcon
+                  closable
+                  onClose={clearPronunciationFeedback}
+                />
+              )}
+            </Space>
+          </Card>
+
+          {/* Talking Avatar Test */}
+          <Card size="small" title="Talking Avatar Test">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Space>
+                <Button 
+                  onClick={() => handleCreateAvatar('Hello world')}
+                  disabled={!isConnected}
+                >
+                  Test "Hello world"
+                </Button>
+                <Button 
+                  onClick={() => handleCreateAvatar('Welcome to English learning')}
+                  disabled={!isConnected}
+                >
+                  Test "Welcome to English learning"
+                </Button>
+              </Space>
+              
+              {talkingAvatarData && (
+                <Alert
+                  message="Talking Avatar Created"
+                  description={
+                    <div>
+                      <div><Text strong>Text:</Text> {talkingAvatarData.text}</div>
+                      <div><Text strong>IPA:</Text> <Text code>{talkingAvatarData.ipaText}</Text></div>
+                      <div><Text strong>Frames:</Text> {talkingAvatarData.animation.totalFrames}</div>
+                      <div><Text strong>Duration:</Text> {talkingAvatarData.animation.duration}s</div>
+                      <div><Text strong>Processing Time:</Text> {talkingAvatarData.processingTime}s</div>
+                    </div>
+                  }
+                  type="success"
+                  showIcon
+                  closable
+                  onClose={clearTalkingAvatarData}
+                />
+              )}
+            </Space>
+          </Card>
+
+          {/* Browser TTS Test */}
+          <Card size="small" title="Browser Text-to-Speech Test">
+            <Space>
+              <Button onClick={() => textToSpeechService.speakWithBrowser('Hello world')}>
+                Test "Hello world"
+              </Button>
+              <Button onClick={() => textToSpeechService.speakWithBrowser('entrepreneur')}>
+                Test "entrepreneur"
+              </Button>
+              <Button onClick={() => textToSpeechService.stopSpeaking()}>
+                Stop Speaking
+              </Button>
+            </Space>
+          </Card>
+        </Space>
       </Modal>
     </div>
   )

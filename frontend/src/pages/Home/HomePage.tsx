@@ -185,7 +185,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </Col>
 
         {/* Quick Actions */}
-        <Col xs={24} lg={12}>
+        {/* <Col xs={24} lg={12}>
           <Card title="⚡ Thao tác nhanh" className={styles.actionCard}>
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <Button 
@@ -218,7 +218,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               </Button>
             </Space>
           </Card>
-        </Col>
+        </Col> */}
       </Row>
     </div>
   )

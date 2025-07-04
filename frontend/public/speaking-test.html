@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speaking Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            background: #f9f9f9; 
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { 
+            margin: 5px; 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 5px; 
+            background: #007bff; 
+            color: white; 
+            cursor: pointer; 
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .log { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            border-radius: 5px; 
+            padding: 10px; 
+            margin: 10px 0; 
+            font-family: monospace; 
+            max-height: 200px; 
+            overflow-y: auto; 
+        }
+        .input-group { margin: 10px 0; }
+        input[type="text"] { 
+            padding: 8px; 
+            width: 300px; 
+            margin-right: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Speaking Integration Test</h1>
+        
+        <!-- Status Section -->
+        <div class="test-section">
+            <h3>📊 System Status</h3>
+            <div id="systemStatus">
+                <div id="pythonStatus" class="status warning">Python API: Checking...</div>
+                <div id="dotnetStatus" class="status warning">.NET API: Checking...</div>
+                <div id="signalrStatus" class="status warning">SignalR: Disconnected</div>
+            </div>
+            <button onclick="checkAllStatus()">🔄 Refresh Status</button>
+            <button onclick="connectSignalR()">🔗 Connect SignalR</button>
+            <button onclick="disconnectSignalR()">❌ Disconnect SignalR</button>
+        </div>
+
+        <!-- Python API Test -->
+        <div class="test-section">
+            <h3>🐍 Python API Tests</h3>
+            <div class="input-group">
+                <input type="text" id="ipaText" placeholder="Enter text for IPA conversion" value="hello world">
+                <button onclick="testTextToIPA()">Convert to IPA</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="avatarText" placeholder="Enter text for avatar" value="Welcome to English learning">
+                <button onclick="testTalkingAvatar()">Create Avatar</button>
+            </div>
+            <div id="pythonResults" class="log">Results will appear here...</div>
+        </div>
+
+        <!-- .NET API Test -->
+        <div class="test-section">
+            <h3>⚙️ .NET API Tests</h3>
+            <button onclick="testDotNetHealth()">Test Health Endpoint</button>
+            <button onclick="testSupportedFormats()">Get Supported Formats</button>
+            <div id="dotnetResults" class="log">Results will appear here...</div>
+        </div>
+
+        <!-- SignalR Test -->
+        <div class="test-section">
+            <h3>🚀 SignalR Hub Tests</h3>
+            <div class="input-group">
+                <input type="text" id="pronounceText" placeholder="Text for pronunciation feedback" value="entrepreneur">
+                <button onclick="testPronunciationFeedback()" id="pronounceBtn" disabled>Get Pronunciation Feedback</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="sessionLessonId" placeholder="Lesson ID" value="lesson-001">
+                <input type="text" id="sessionExpectedText" placeholder="Expected text" value="Hello, how are you?">
+                <button onclick="startSpeakingSession()" id="startSessionBtn" disabled>Start Speaking Session</button>
+                <button onclick="endSpeakingSession()" id="endSessionBtn" disabled>End Session</button>
+            </div>
+            <div id="signalrResults" class="log">SignalR events will appear here...</div>
+        </div>
+
+        <!-- Browser TTS Test -->
+        <div class="test-section">
+            <h3>🔊 Browser Text-to-Speech Test</h3>
+            <div class="input-group">
+                <input type="text" id="ttsText" placeholder="Text to speak" value="Hello, this is a test">
+                <button onclick="testBrowserTTS()">Speak with Browser</button>
+                <button onclick="stopBrowserTTS()">Stop Speaking</button>
+            </div>
+            <button onclick="listVoices()">List Available Voices</button>
+            <div id="ttsResults" class="log">TTS results will appear here...</div>
+        </div>
+
+        <!-- Combined Test -->
+        <div class="test-section">
+            <h3>🎯 Combined Functionality Test</h3>
+            <div class="input-group">
+                <input type="text" id="fullTestText" placeholder="Text for full test" value="entrepreneur">
+                <button onclick="runFullTest()">🚀 Run Full Test</button>
+            </div>
+            <div id="fullTestResults" class="log">Full test results will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Include SignalR -->
+    <script src="https://unpkg.com/@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    
+    <script>
+        // Configuration
+        const PYTHON_API_URL = 'http://127.0.0.1:5000';
+        const DOTNET_API_URL = 'http://localhost:5073';
+        const SIGNALR_HUB_URL = `${DOTNET_API_URL}/hubs/speaking`;
+        
+        let signalRConnection = null;
+        let currentSessionId = null;
+
+        // Utility functions
+        function logResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            element.textContent += logEntry;
+            element.scrollTop = element.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Status checks
+        async function checkPythonAPI() {
+            try {
+                const response = await fetch(`${PYTHON_API_URL}/health`);
+                if (response.ok) {
+                    updateStatus('pythonStatus', 'Python API: ✅ Healthy', 'success');
+                    return true;
+                } else {
+                    updateStatus('pythonStatus', 'Python API: ❌ Unhealthy', 'error');
+                    return false;
+                }
+            } catch (error) {
+                updateStatus('pythonStatus', 'Python API: ❌ Offline', 'error');
+                return false;
+            }
+        }
+
+        async function checkDotNetAPI() {
+            try {
+                const response = await fetch(`${DOTNET_API_URL}/api/speaking/health`);
+                if (response.ok) {
+                    updateStatus('dotnetStatus', '.NET API: ✅ Healthy', 'success');
+                    return true;
+                } else {
+                    updateStatus('dotnetStatus', '.NET API: ❌ Unhealthy', 'error');
+                    return false;
+                }
+            } catch (error) {
+                updateStatus('dotnetStatus', '.NET API: ❌ Offline', 'error');
+                return false;
+            }
+        }
+
+        async function checkAllStatus() {
+            await checkPythonAPI();
+            await checkDotNetAPI();
+        }
+
+        // Python API Tests
+        async function testTextToIPA() {
+            const text = document.getElementById('ipaText').value;
+            logResult('pythonResults', `Testing IPA conversion for: "${text}"`);
+            
+            try {
+                const response = await fetch(`${PYTHON_API_URL}/text_to_ipa`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                const result = await response.json();
+                logResult('pythonResults', `IPA Result: ${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                logResult('pythonResults', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTalkingAvatar() {
+            const text = document.getElementById('avatarText').value;
+            logResult('pythonResults', `Testing talking avatar for: "${text}"`);
+            
+            try {
+                const response = await fetch(`${PYTHON_API_URL}/create_talking_avatar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, duration: 3.0, fps: 30 })
+                });
+                
+                const result = await response.json();
+                logResult('pythonResults', `Avatar Result: Animation with ${result.animation?.total_frames || 0} frames`);
+            } catch (error) {
+                logResult('pythonResults', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // .NET API Tests
+        async function testDotNetHealth() {
+            logResult('dotnetResults', 'Testing .NET API health...');
+            
+            try {
+                const response = await fetch(`${DOTNET_API_URL}/api/speaking/health`);
+                const result = await response.json();
+                logResult('dotnetResults', `Health Result: ${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                logResult('dotnetResults', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSupportedFormats() {
+            logResult('dotnetResults', 'Getting supported formats...');
+            
+            try {
+                const response = await fetch(`${DOTNET_API_URL}/api/speaking/supported-formats`);
+                const result = await response.json();
+                logResult('dotnetResults', `Supported Formats: ${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                logResult('dotnetResults', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // SignalR Tests
+        async function connectSignalR() {
+            if (signalRConnection?.state === 'Connected') {
+                logResult('signalrResults', 'Already connected to SignalR');
+                return;
+            }
+
+            try {
+                signalRConnection = new signalR.HubConnectionBuilder()
+                    .withUrl(SIGNALR_HUB_URL, {
+                        accessTokenFactory: () => 'test-token' // You might need a real token
+                    })
+                    .withAutomaticReconnect()
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                // Register event handlers
+                signalRConnection.on('SpeakingSessionStarted', (data) => {
+                    logResult('signalrResults', `Session Started: ${JSON.stringify(data)}`);
+                    currentSessionId = data.sessionId;
+                    document.getElementById('endSessionBtn').disabled = false;
+                });
+
+                signalRConnection.on('SpeakingSessionEnded', (data) => {
+                    logResult('signalrResults', `Session Ended: ${JSON.stringify(data)}`);
+                    currentSessionId = null;
+                    document.getElementById('endSessionBtn').disabled = true;
+                });
+
+                signalRConnection.on('PronunciationFeedback', (data) => {
+                    logResult('signalrResults', `Pronunciation Feedback: ${JSON.stringify(data)}`);
+                });
+
+                signalRConnection.on('TalkingAvatarCreated', (data) => {
+                    logResult('signalrResults', `Avatar Created: ${data.animation?.totalFrames || 0} frames`);
+                });
+
+                signalRConnection.on('SpeakingError', (error) => {
+                    logResult('signalrResults', `Speaking Error: ${JSON.stringify(error)}`, 'error');
+                });
+
+                await signalRConnection.start();
+                updateStatus('signalrStatus', 'SignalR: ✅ Connected', 'success');
+                
+                // Enable buttons
+                document.getElementById('pronounceBtn').disabled = false;
+                document.getElementById('startSessionBtn').disabled = false;
+                
+                logResult('signalrResults', 'Connected to SignalR Hub successfully');
+            } catch (error) {
+                updateStatus('signalrStatus', 'SignalR: ❌ Connection failed', 'error');
+                logResult('signalrResults', `Connection Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function disconnectSignalR() {
+            if (signalRConnection) {
+                await signalRConnection.stop();
+                signalRConnection = null;
+                updateStatus('signalrStatus', 'SignalR: ❌ Disconnected', 'warning');
+                
+                // Disable buttons
+                document.getElementById('pronounceBtn').disabled = true;
+                document.getElementById('startSessionBtn').disabled = true;
+                document.getElementById('endSessionBtn').disabled = true;
+                
+                logResult('signalrResults', 'Disconnected from SignalR Hub');
+            }
+        }
+
+        async function testPronunciationFeedback() {
+            if (!signalRConnection || signalRConnection.state !== 'Connected') {
+                logResult('signalrResults', 'Not connected to SignalR', 'error');
+                return;
+            }
+
+            const text = document.getElementById('pronounceText').value;
+            logResult('signalrResults', `Requesting pronunciation feedback for: "${text}"`);
+            
+            try {
+                await signalRConnection.invoke('GetPronunciationFeedback', text);
+            } catch (error) {
+                logResult('signalrResults', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function startSpeakingSession() {
+            if (!signalRConnection || signalRConnection.state !== 'Connected') {
+                logResult('signalrResults', 'Not connected to SignalR', 'error');
+                return;
+            }
+
+            const lessonId = document.getElementById('sessionLessonId').value;
+            const expectedText = document.getElementById('sessionExpectedText').value;
+            
+            logResult('signalrResults', `Starting speaking session for lesson: ${lessonId}`);
+            
+            try {
+                await signalRConnection.invoke('StartSpeakingSession', lessonId, expectedText);
+            } catch (error) {
+                logResult('signalrResults', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function endSpeakingSession() {
+            if (!signalRConnection || !currentSessionId) {
+                logResult('signalrResults', 'No active session', 'error');
+                return;
+            }
+
+            const expectedText = document.getElementById('sessionExpectedText').value;
+            
+            logResult('signalrResults', `Ending speaking session: ${currentSessionId}`);
+            
+            try {
+                // For demo, sending empty audio data
+                await signalRConnection.invoke('EndSpeakingSession', currentSessionId, '', expectedText);
+            } catch (error) {
+                logResult('signalrResults', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Browser TTS Tests
+        function testBrowserTTS() {
+            const text = document.getElementById('ttsText').value;
+            logResult('ttsResults', `Speaking: "${text}"`);
+            
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.8;
+                
+                utterance.onend = () => {
+                    logResult('ttsResults', 'Speech completed');
+                };
+                
+                utterance.onerror = (error) => {
+                    logResult('ttsResults', `Speech error: ${error.error}`, 'error');
+                };
+                
+                speechSynthesis.speak(utterance);
+            } else {
+                logResult('ttsResults', 'Speech synthesis not supported', 'error');
+            }
+        }
+
+        function stopBrowserTTS() {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                logResult('ttsResults', 'Speech stopped');
+            }
+        }
+
+        function listVoices() {
+            if ('speechSynthesis' in window) {
+                const voices = speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('en-'));
+                logResult('ttsResults', `Available English voices (${voices.length}):`);
+                voices.forEach(voice => {
+                    logResult('ttsResults', `- ${voice.name} (${voice.lang})`);
+                });
+            }
+        }
+
+        // Combined test
+        async function runFullTest() {
+            const text = document.getElementById('fullTestText').value;
+            logResult('fullTestResults', `🚀 Starting full test for: "${text}"`);
+            
+            // 1. Test Python API
+            logResult('fullTestResults', '1. Testing Python API...');
+            await testTextToIPADirect(text);
+            
+            // 2. Test Browser TTS
+            logResult('fullTestResults', '2. Testing Browser TTS...');
+            testBrowserTTSDirect(text);
+            
+            // 3. Test SignalR (if connected)
+            if (signalRConnection?.state === 'Connected') {
+                logResult('fullTestResults', '3. Testing SignalR pronunciation feedback...');
+                try {
+                    await signalRConnection.invoke('GetPronunciationFeedback', text);
+                } catch (error) {
+                    logResult('fullTestResults', `SignalR Error: ${error.message}`, 'error');
+                }
+            } else {
+                logResult('fullTestResults', '3. SignalR not connected, skipping...');
+            }
+            
+            logResult('fullTestResults', '✅ Full test completed!');
+        }
+
+        async function testTextToIPADirect(text) {
+            try {
+                const response = await fetch(`${PYTHON_API_URL}/text_to_ipa`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const result = await response.json();
+                logResult('fullTestResults', `   IPA: ${result.ipa?.g2p_ipa || 'N/A'}`);
+            } catch (error) {
+                logResult('fullTestResults', `   Python API Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testBrowserTTSDirect(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.8;
+                speechSynthesis.speak(utterance);
+                logResult('fullTestResults', '   Browser TTS: Speaking...');
+            } else {
+                logResult('fullTestResults', '   Browser TTS: Not supported', 'error');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            checkAllStatus();
+            
+            // Load voices for TTS
+            if ('speechSynthesis' in window) {
+                speechSynthesis.onvoiceschanged = listVoices;
+            }
+        };
+    </script>
+</body>
+</html>

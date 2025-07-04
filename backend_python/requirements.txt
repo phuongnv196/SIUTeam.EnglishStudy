@@ -1,5 +1,6 @@
 openai-whisper
 flask
+flask-cors
 werkzeug
 requests
 flask-socketio

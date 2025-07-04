@@ -16,7 +16,7 @@ import {
   ThunderboltOutlined
 } from '@ant-design/icons'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { UserProfileModal } from '../../components/auth'
 import { useState } from 'react'
@@ -163,7 +163,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             color: 'white',
             fontWeight: 'bold'
           }}>
-            {collapsed ? '📚' : '📚 English Study'}
+            <Link to="/" style={{ textDecoration: 'none', color: 'white' }}>{collapsed ? '📚' : '📚 English Study'}</Link>
           </Title>
         </div>
         <Menu

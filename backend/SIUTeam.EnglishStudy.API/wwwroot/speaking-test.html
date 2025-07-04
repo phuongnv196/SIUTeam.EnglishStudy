@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speaking Practice Test</title>
+    <script src="https://unpkg.com/@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        textarea { width: 100%; min-height: 100px; }
+        button { margin: 5px; padding: 10px 15px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; font-family: monospace; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Speaking Practice - SignalR Test</h1>
+        
+        <div class="section">
+            <h3>Connection Status</h3>
+            <button onclick="connectToHub()">Connect to SignalR Hub</button>
+            <button onclick="disconnectFromHub()">Disconnect</button>
+            <div id="connectionStatus" class="log">Not connected</div>
+        </div>
+
+        <div class="section">
+            <h3>Speaking Practice Session</h3>
+            <input type="text" id="lessonId" placeholder="Lesson ID" value="lesson-001">
+            <input type="text" id="expectedText" placeholder="Expected text" value="Hello, how are you today?">
+            <br><br>
+            <button onclick="startSession()">Start Speaking Session</button>
+            <button onclick="endSession()">End Session</button>
+            <div id="sessionInfo" class="log">No active session</div>
+        </div>
+
+        <div class="section">
+            <h3>File Upload Test</h3>
+            <input type="file" id="audioFile" accept="audio/*">
+            <button onclick="uploadAndTranscribe()">Upload & Transcribe</button>
+            <div id="transcriptionResult" class="log">No transcription yet</div>
+        </div>
+
+        <div class="section">
+            <h3>Text to IPA Conversion</h3>
+            <input type="text" id="textToConvert" placeholder="Text to convert to IPA" value="Hello world">
+            <button onclick="convertToIpa()">Convert to IPA</button>
+            <div id="ipaResult" class="log">No conversion yet</div>
+        </div>
+
+        <div class="section">
+            <h3>Pronunciation Feedback</h3>
+            <input type="text" id="pronunciationText" placeholder="Text for pronunciation feedback" value="pronunciation">
+            <button onclick="getPronunciationFeedback()">Get Feedback</button>
+            <div id="pronunciationResult" class="log">No feedback yet</div>
+        </div>
+
+        <div class="section">
+            <h3>Talking Avatar</h3>
+            <input type="text" id="avatarText" placeholder="Text for avatar" value="Welcome to our English learning platform">
+            <input type="number" id="avatarDuration" placeholder="Duration" value="3" step="0.1">
+            <input type="number" id="avatarFps" placeholder="FPS" value="30">
+            <button onclick="createTalkingAvatar()">Create Avatar</button>
+            <div id="avatarResult" class="log">No avatar created yet</div>
+        </div>
+
+        <div class="section">
+            <h3>Event Log</h3>
+            <button onclick="clearLog()">Clear Log</button>
+            <textarea id="eventLog" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        let connection = null;
+        let currentSessionId = null;
+        const apiBase = 'https://localhost:7001'; // Adjust to your API URL
+        const token = 'your_jwt_token_here'; // Replace with actual JWT token
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('eventLog');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logElement.value += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function connectToHub() {
+            try {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl(`${apiBase}/hubs/speaking`, {
+                        accessTokenFactory: () => token
+                    })
+                    .withAutomaticReconnect()
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                // Register event handlers
+                connection.on("SpeakingSessionStarted", (data) => {
+                    log(`Session started: ${JSON.stringify(data)}`, 'success');
+                    currentSessionId = data.sessionId;
+                    document.getElementById('sessionInfo').innerHTML = `Active session: ${data.sessionId}`;
+                });
+
+                connection.on("ChunkTranscribed", (data) => {
+                    log(`Chunk transcribed: ${data.transcribedText}`, 'info');
+                });
+
+                connection.on("SpeakingSessionEnded", (data) => {
+                    log(`Session ended: ${JSON.stringify(data)}`, 'success');
+                    currentSessionId = null;
+                    document.getElementById('sessionInfo').innerHTML = `Session ended. Score: ${data.confidenceScore}`;
+                });
+
+                connection.on("PronunciationFeedback", (data) => {
+                    log(`Pronunciation feedback: ${JSON.stringify(data)}`, 'info');
+                    document.getElementById('pronunciationResult').innerHTML = `IPA: ${data.ipaNotation}<br>Arpabet: ${data.arpabet}`;
+                });
+
+                connection.on("TalkingAvatarCreated", (data) => {
+                    log(`Talking avatar created: ${data.animation.totalFrames} frames`, 'success');
+                    document.getElementById('avatarResult').innerHTML = `Animation created: ${data.animation.totalFrames} frames, ${data.animation.duration}s`;
+                });
+
+                connection.on("SpeakingError", (data) => {
+                    log(`Speaking error: ${data.error}`, 'error');
+                });
+
+                await connection.start();
+                document.getElementById('connectionStatus').innerHTML = '<span class="success">Connected to SignalR Hub</span>';
+                log("Connected to SignalR Hub", 'success');
+
+            } catch (err) {
+                log(`Connection failed: ${err}`, 'error');
+                document.getElementById('connectionStatus').innerHTML = '<span class="error">Connection failed</span>';
+            }
+        }
+
+        async function disconnectFromHub() {
+            if (connection) {
+                await connection.stop();
+                document.getElementById('connectionStatus').innerHTML = 'Disconnected';
+                log("Disconnected from SignalR Hub", 'info');
+            }
+        }
+
+        async function startSession() {
+            if (!connection) {
+                log("Not connected to hub", 'error');
+                return;
+            }
+
+            const lessonId = document.getElementById('lessonId').value;
+            const expectedText = document.getElementById('expectedText').value;
+
+            try {
+                await connection.invoke("StartSpeakingSession", lessonId, expectedText);
+                log(`Starting session for lesson: ${lessonId}`, 'info');
+            } catch (err) {
+                log(`Failed to start session: ${err}`, 'error');
+            }
+        }
+
+        async function endSession() {
+            if (!connection || !currentSessionId) {
+                log("No active session", 'error');
+                return;
+            }
+
+            try {
+                // For demo purposes, we'll send empty audio data
+                const finalAudio = ""; // Base64 encoded audio would go here
+                const expectedText = document.getElementById('expectedText').value;
+                
+                await connection.invoke("EndSpeakingSession", currentSessionId, finalAudio, expectedText);
+                log(`Ending session: ${currentSessionId}`, 'info');
+            } catch (err) {
+                log(`Failed to end session: ${err}`, 'error');
+            }
+        }
+
+        async function uploadAndTranscribe() {
+            const fileInput = document.getElementById('audioFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                log("Please select an audio file", 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${apiBase}/api/speaking/transcribe`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                log(`Transcription result: ${JSON.stringify(result)}`, 'success');
+                document.getElementById('transcriptionResult').innerHTML = `
+                    <strong>Text:</strong> ${result.text}<br>
+                    <strong>Language:</strong> ${result.language}<br>
+                    <strong>IPA:</strong> ${result.ipa?.g2pIpa || 'N/A'}
+                `;
+            } catch (err) {
+                log(`Transcription failed: ${err}`, 'error');
+            }
+        }
+
+        async function convertToIpa() {
+            const text = document.getElementById('textToConvert').value;
+
+            if (!text) {
+                log("Please enter text to convert", 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiBase}/api/speaking/text-to-ipa`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ text })
+                });
+
+                const result = await response.json();
+                log(`IPA conversion result: ${JSON.stringify(result)}`, 'success');
+                document.getElementById('ipaResult').innerHTML = `
+                    <strong>Original:</strong> ${result.originalText}<br>
+                    <strong>IPA:</strong> ${result.ipa?.g2pIpa || 'N/A'}<br>
+                    <strong>Arpabet:</strong> ${result.ipa?.arpabet || 'N/A'}
+                `;
+            } catch (err) {
+                log(`IPA conversion failed: ${err}`, 'error');
+            }
+        }
+
+        async function getPronunciationFeedback() {
+            if (!connection) {
+                log("Not connected to hub", 'error');
+                return;
+            }
+
+            const text = document.getElementById('pronunciationText').value;
+
+            try {
+                await connection.invoke("GetPronunciationFeedback", text);
+                log(`Requesting pronunciation feedback for: ${text}`, 'info');
+            } catch (err) {
+                log(`Failed to get pronunciation feedback: ${err}`, 'error');
+            }
+        }
+
+        async function createTalkingAvatar() {
+            if (!connection) {
+                log("Not connected to hub", 'error');
+                return;
+            }
+
+            const text = document.getElementById('avatarText').value;
+            const duration = parseFloat(document.getElementById('avatarDuration').value);
+            const fps = parseInt(document.getElementById('avatarFps').value);
+
+            try {
+                await connection.invoke("CreateTalkingAvatar", text, duration, fps);
+                log(`Creating talking avatar for: ${text}`, 'info');
+            } catch (err) {
+                log(`Failed to create talking avatar: ${err}`, 'error');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('eventLog').value = '';
+        }
+
+        // Auto-connect on page load (optional)
+        // window.onload = connectToHub;
+    </script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, abort
+from flask_cors import CORS
 from faster_whisper import WhisperModel
 import os
 import tempfile
@@ -9,6 +10,9 @@ from g2p_en import G2p
 from viseme_system import VisemeMapper
 
 app = Flask(__name__)
+
+# Configure CORS to allow requests from the frontend
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"])
 
 # Cấu hình
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -48,9 +52,18 @@ except Exception as e:
     viseme_mapper = None
     VISEME_AVAILABLE = False
 
-
+# Initialize Real Face Animator for realistic facial animation
+print("Loading Real Face Animator for realistic facial animation...")
+try:
+    # Real face animator would be imported here if available
+    # from real_face_animator import RealFaceAnimator
+    # real_face_animator = RealFaceAnimator()
+    # For now, we'll disable this feature
+    raise ImportError("Real Face Animator not implemented yet")
+    REAL_FACE_AVAILABLE = True
+    print("Real Face Animator loaded successfully!")
 except Exception as e:
-    print(f"Error loading Real Face Animator: {e}")
+    print(f"Real Face Animator not available: {e}")
     real_face_animator = None
     REAL_FACE_AVAILABLE = False
 

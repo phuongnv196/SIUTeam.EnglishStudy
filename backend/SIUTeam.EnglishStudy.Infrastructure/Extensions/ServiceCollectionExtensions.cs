@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
+using SIUTeam.EnglishStudy.Core.Interfaces;
 using SIUTeam.EnglishStudy.Core.Interfaces.Repositories;
 using SIUTeam.EnglishStudy.Core.Interfaces.Services;
 using SIUTeam.EnglishStudy.Infrastructure.Data;
@@ -37,6 +39,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<IStudyService, StudyService>();
+        
+        // Register HTTP client for SpeakingService
+        services.AddHttpClient<ISpeakingService, SpeakingService>();
         
         return services;
     }
