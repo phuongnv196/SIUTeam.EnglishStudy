@@ -42,7 +42,7 @@ public static class ServiceCollectionExtensions
         
         // Register HTTP client for SpeakingService
         services.AddHttpClient<ISpeakingService, SpeakingService>();
-        
+
         return services;
     }
 }

@@ -49,7 +49,7 @@ public class UsersController : ControllerBase
         try
         {
             // Get current user from token
-            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.Name);
             var currentUserRoleClaim = User.FindFirst(ClaimTypes.Role);
 
             if (currentUserIdClaim == null || !Guid.TryParse(currentUserIdClaim.Value, out var currentUserId))
@@ -148,7 +148,7 @@ public class UsersController : ControllerBase
         try
         {
             // Get current user from token
-            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.Name);
             var currentUserRoleClaim = User.FindFirst(ClaimTypes.Role);
 
             if (currentUserIdClaim == null || !Guid.TryParse(currentUserIdClaim.Value, out var currentUserId))
@@ -252,7 +252,7 @@ public class UsersController : ControllerBase
         try
         {
             var currentUserRoleClaim = User.FindFirst(ClaimTypes.Role);
-            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.Name);
 
             // Only Admin can delete users
             if (currentUserRoleClaim?.Value != UserRole.Admin.ToString())
@@ -312,7 +312,7 @@ public class UsersController : ControllerBase
         try
         {
             var currentUserRoleClaim = User.FindFirst(ClaimTypes.Role);
-            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.Name);
 
             // Only Admin can update user status
             if (currentUserRoleClaim?.Value != UserRole.Admin.ToString())

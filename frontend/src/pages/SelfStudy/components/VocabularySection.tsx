@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Card, Row, Col, Button, Progress, Tag, List, Typography, Modal, Space, Alert, Spin, Divider } from 'antd'
+import React, { useState, useEffect, useRef } from 'react'
+import { Card, Row, Col, Button, Progress, Tag, List, Typography, Modal, Space, Alert, Spin, message } from 'antd'
 import { 
   PlayCircleOutlined, 
   SoundOutlined, 
@@ -8,7 +8,9 @@ import {
   BookOutlined,
   ApiOutlined,
   ExperimentOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  PhoneOutlined,
+  StopOutlined
 } from '@ant-design/icons'
 import { useSpeakingHub } from '../../../hooks/useSpeakingHub'
 import textToSpeechService from '../../../services/textToSpeechService'
@@ -33,6 +35,12 @@ const VocabularySection: React.FC = () => {
   const [testModalVisible, setTestModalVisible] = useState(false)
   const [loadingPronunciation, setLoadingPronunciation] = useState<number | null>(null)
   const [pythonApiHealthy, setPythonApiHealthy] = useState<boolean | null>(null)
+  const [_isRecording, setIsRecording] = useState(false)
+  const [recordingWordId, setRecordingWordId] = useState<number | null>(null)
+  const [lastTranscription, setLastTranscription] = useState<string>('')
+  
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   // Speaking Hub integration
   const {
@@ -40,12 +48,16 @@ const VocabularySection: React.FC = () => {
     isConnecting,
     connect,
     disconnect,
+    startSpeakingSession,
+    endSpeakingSession,
     getPronunciationFeedback,
     pronunciationFeedback,
     clearPronunciationFeedback,
     createTalkingAvatar,
     talkingAvatarData,
-    clearTalkingAvatarData
+    clearTalkingAvatarData,
+    activeSessionId,
+    lastTranscription: hubTranscription
   } = useSpeakingHub()
 
   // Check Python API health on component mount
@@ -149,6 +161,98 @@ const VocabularySection: React.FC = () => {
     }
   }
 
+  // Speaking test function
+  const handleSpeakingTest = async (word: string, wordId: number) => {
+    if (!isConnected) {
+      message.info('Đang kết nối SignalR...')
+      await connect()
+    }
+
+    if (!isConnected) {
+      message.error('Không thể kết nối đến Speaking Hub')
+      return
+    }
+
+    setRecordingWordId(wordId)
+    
+    try {
+      // Request microphone permission and start recording
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      
+      // Start speaking session (lessonId can be wordId, expectedText is the word)
+      await startSpeakingSession(wordId.toString(), word)
+      
+      // Setup MediaRecorder for chunked recording
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      })
+      
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        
+        // Convert blob to base64 string for SignalR
+        const reader = new FileReader()
+        reader.onloadend = async () => {
+          const base64Audio = (reader.result as string).split(',')[1] // Remove data:audio/webm;base64, prefix
+          
+          // End speaking session with final audio
+          if (activeSessionId) {
+            await endSpeakingSession(base64Audio, word)
+          }
+        }
+        reader.readAsDataURL(audioBlob)
+        
+        // Clean up
+        stream.getTracks().forEach(track => track.stop())
+        setRecordingWordId(null)
+        setIsRecording(false)
+      }
+      
+      // Start recording
+      setIsRecording(true)
+      mediaRecorder.start(1000) // Collect data every 1 second
+      
+      message.success(`Đang ghi âm "${word}". Nhấn Stop để kết thúc.`)
+      
+      // Auto stop after 5 seconds
+      setTimeout(() => {
+        if (mediaRecorderRef.current?.state === 'recording') {
+          stopSpeakingTest()
+        }
+      }, 5000)
+      
+    } catch (error) {
+      console.error('Error starting speaking test:', error)
+      message.error('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.')
+      setRecordingWordId(null)
+      setIsRecording(false)
+    }
+  }
+
+  const stopSpeakingTest = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+      message.info('Đã dừng ghi âm. Đang xử lý...')
+    }
+  }
+
+  // Update transcription when hub returns result
+  useEffect(() => {
+    if (hubTranscription) {
+      setLastTranscription(hubTranscription)
+      message.success(`Kết quả nhận dạng: "${hubTranscription}"`)
+    }
+  }, [hubTranscription])
+
   return (
     <div>
       {/* API Status Section */}
@@ -200,6 +304,42 @@ const VocabularySection: React.FC = () => {
           />
         </Col>
       </Row>
+
+      {/* Speaking Test Results */}
+      {lastTranscription && (
+        <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+          <Col span={24}>
+            <Alert
+              message="🎤 Kết quả nhận dạng giọng nói"
+              description={
+                <div>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div>
+                      <Text strong>Từ được nhận dạng: </Text>
+                      <Text code style={{ fontSize: '16px', color: '#1890ff' }}>{lastTranscription}</Text>
+                    </div>
+                    {pronunciationFeedback && (
+                      <div>
+                        <Text strong>IPA: </Text>
+                        <Text code>{pronunciationFeedback.ipaNotation}</Text>
+                        <Text strong style={{ marginLeft: '16px' }}>ARPAbet: </Text>
+                        <Text code>{pronunciationFeedback.arpabet}</Text>
+                      </div>
+                    )}
+                  </Space>
+                </div>
+              }
+              type="success"
+              showIcon
+              closable
+              onClose={() => {
+                setLastTranscription('')
+                clearPronunciationFeedback()
+              }}
+            />
+          </Col>
+        </Row>
+      )}
 
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col span={24}>
@@ -272,6 +412,16 @@ const VocabularySection: React.FC = () => {
                   </Button>,
                   <Button 
                     type="text" 
+                    icon={recordingWordId === item.id ? <StopOutlined /> : <PhoneOutlined />}
+                    onClick={() => recordingWordId === item.id ? stopSpeakingTest() : handleSpeakingTest(item.word, item.id)}
+                    disabled={!isConnected || (recordingWordId !== null && recordingWordId !== item.id)}
+                    loading={recordingWordId === item.id}
+                    danger={recordingWordId === item.id}
+                  >
+                    {recordingWordId === item.id ? 'Dừng' : 'Test Nói'}
+                  </Button>,
+                  <Button 
+                    type="text" 
                     icon={<EyeOutlined />}
                     onClick={() => handleViewWord(item)}
                   >
@@ -327,6 +477,23 @@ const VocabularySection: React.FC = () => {
             Đóng
           </Button>,
           <Button 
+            key="ipa" 
+            icon={<ApiOutlined />}
+            onClick={() => selectedWord && handleGetIPAPronunciation(selectedWord.word)}
+            disabled={!isConnected}
+          >
+            Get IPA
+          </Button>,
+          <Button 
+            key="speaking" 
+            icon={<PhoneOutlined />}
+            onClick={() => selectedWord && handleSpeakingTest(selectedWord.word, selectedWord.id)}
+            disabled={!isConnected || recordingWordId === selectedWord?.id}
+            loading={recordingWordId === selectedWord?.id}
+          >
+            Test Speaking
+          </Button>,
+          <Button 
             key="practice" 
             type="primary"
             icon={<PlayCircleOutlined />}
@@ -347,6 +514,17 @@ const VocabularySection: React.FC = () => {
                   onClick={() => selectedWord && playPronunciation(selectedWord.word, selectedWord.id)}
                   style={{ marginLeft: '8px' }}
                 />
+                <Button 
+                  type="text" 
+                  icon={recordingWordId === selectedWord.id ? <StopOutlined /> : <PhoneOutlined />}
+                  onClick={() => recordingWordId === selectedWord.id ? stopSpeakingTest() : handleSpeakingTest(selectedWord.word, selectedWord.id)}
+                  disabled={!isConnected || (recordingWordId !== null && recordingWordId !== selectedWord.id)}
+                  loading={recordingWordId === selectedWord.id}
+                  danger={recordingWordId === selectedWord.id}
+                  style={{ marginLeft: '8px' }}
+                >
+                  {recordingWordId === selectedWord.id ? 'Dừng' : 'Test Nói'}
+                </Button>
               </div>
               <div>
                 <Text strong>Nghĩa: </Text>

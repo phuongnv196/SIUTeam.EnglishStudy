@@ -6,6 +6,7 @@ import MainLayout from '../layouts/Main/MainLayout'
 import LandingPage from '../pages/Landing'
 import HomePage from '../pages/Home'
 import CoursesPage from '../features/courses/pages/CoursesPage'
+import MicrophoneTestPage from '../pages/MicrophoneTestPageSimple'
 import { Outlet } from 'react-router-dom'
 
 const routes: RouteObject[] = [
@@ -18,6 +19,10 @@ const routes: RouteObject[] = [
         element: <LandingPage />
       }
     ]
+  },
+  {
+    path: '/microphone-test',
+    element: <MicrophoneTestPage />
   },
   {
     path: '/dashboard',
@@ -46,6 +51,10 @@ const routes: RouteObject[] = [
       {
         path: 'courses',
         element: <CoursesPage />
+      },
+      {
+        path: 'microphone-test',
+        element: <MicrophoneTestPage />
       }
     ]
   },

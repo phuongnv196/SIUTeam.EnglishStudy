@@ -88,11 +88,19 @@ export const useSpeakingHub = () => {
     setIsConnecting(true)
     
     try {
-      const newConnection = new HubConnectionBuilder()
-        .withUrl('http://localhost:5073/hubs/speaking')
+      // Get token from parameter or localStorage
+      const authToken = token || localStorage.getItem('auth_token')
+      
+      let hubUrl = 'http://localhost:5073/hubs/speaking'
+      
+      const connectionBuilder = new HubConnectionBuilder()
+        .withUrl(hubUrl, {
+            accessTokenFactory: () => authToken || '', // Use token if available
+        })
         .withAutomaticReconnect()
         .configureLogging(LogLevel.Information)
-        .build()
+
+      const newConnection = connectionBuilder.build()
 
       // Event handlers
       newConnection.on('SpeakingSessionStarted', (data: SpeakingSessionData) => {
@@ -256,17 +264,18 @@ export const useSpeakingHub = () => {
     }
   }, [connection, isConnected])
 
-  // Auto-connect on mount (if token exists)
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token && !connection) {
-      connect(token)
-    }
+//   // Auto-connect on mount (always try to connect with token if available)
+//   useEffect(() => {
+//     const token = localStorage.getItem('token')
+//     if (!connection) {
+//       // Try to connect with token if available, otherwise connect anonymously for testing
+//       connect(token || undefined)
+//     }
 
-    return () => {
-      disconnect()
-    }
-  }, [])
+//     return () => {
+//       disconnect()
+//     }
+//   }, [connection, connect, disconnect])
 
   // Cleanup on unmount
   useEffect(() => {

@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SIUTeam.EnglishStudy.API.Models;
 using SIUTeam.EnglishStudy.Core.DTOs;
 using SIUTeam.EnglishStudy.Core.Interfaces;
-using SIUTeam.EnglishStudy.API.Models;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 
 namespace SIUTeam.EnglishStudy.API.Hubs;
 
-[AllowAnonymous] // Temporarily allow anonymous access for testing
+[Authorize]
 public class SpeakingHub : Hub
 {
     private readonly ISpeakingService _speakingService;
@@ -25,7 +26,27 @@ public class SpeakingHub : Hub
     public override async Task OnConnectedAsync()
     {
         var userId = Context.UserIdentifier;
-        _logger.LogInformation("User {UserId} connected to SpeakingHub", userId);
+        var userName = Context.User?.Identity?.Name;
+        var isAuthenticated = Context.User?.Identity?.IsAuthenticated ?? false;
+        
+        // Debug: Log all claims
+        var claims = Context.User?.Claims?.Select(c => $"{c.Type}: {c.Value}").ToList() ?? new List<string>();
+        
+        _logger.LogInformation("User connected to SpeakingHub - UserIdentifier: {UserId}, UserName: {UserName}, IsAuthenticated: {IsAuthenticated}", 
+            userId, userName, isAuthenticated);
+        _logger.LogInformation("User claims: {Claims}", string.Join(", ", claims));
+        
+        // Try to get user ID from different claim types
+        var nameIdentifierClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var nameClaim = Context.User?.FindFirst(ClaimTypes.Name)?.Value;
+        var subClaim = Context.User?.FindFirst("sub")?.Value;
+        var nameidClaim = Context.User?.FindFirst("nameid")?.Value;
+        var userIdClaim = Context.User?.FindFirst("userId")?.Value;
+        var idClaim = Context.User?.FindFirst("id")?.Value;
+        
+        _logger.LogInformation("Claim values - NameIdentifier: {NameIdentifier}, Name: {Name}, Sub: {Sub}, NameId: {NameId}, UserId: {UserId}, Id: {Id}", 
+            nameIdentifierClaim, nameClaim, subClaim, nameidClaim, userIdClaim, idClaim);
+            
         await base.OnConnectedAsync();
     }
 

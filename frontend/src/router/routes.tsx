@@ -11,6 +11,7 @@ import CoursesPage from '../features/courses/pages/CoursesPage'
 import ProgressPage from '../pages/Progress'
 import QuizPage from '../pages/Quiz'
 import SelfStudyPage from '../pages/SelfStudy'
+import MicrophoneTestPage from '../pages/MicrophoneTestPageSimple'
 
 // Dashboard Layout Component với navigation
 const DashboardLayout: React.FC = () => {
@@ -30,6 +31,8 @@ const DashboardLayout: React.FC = () => {
       setSelectedKey('3')
     } else if (path.includes('/dashboard/quiz')) {
       setSelectedKey('4')
+    } else if (path.includes('/dashboard/microphone-test')) {
+      setSelectedKey('6')
     } else if (path.includes('/dashboard/self-study')) {
       // Check for specific sections
       if (path.includes('vocabulary')) {
@@ -60,6 +63,7 @@ const DashboardLayout: React.FC = () => {
     if (key === '3') return navigate(`${base}/progress`)
     if (key === '4') return navigate(`${base}/quiz`)
     if (key === '5') return navigate(`${base}/self-study`)
+    if (key === '6') return navigate(`${base}/microphone-test`)
     if (key.startsWith('5-')) {
       const sectionMap: Record<string, string> = {
         '5-1': 'vocabulary',
@@ -144,6 +148,10 @@ const routes: RouteObject[] = [
     ]
   },
   {
+    path: '/microphone-test',
+    element: <MicrophoneTestPage />
+  },
+  {
     path: '/dashboard',
     element: (
       <ProtectedRoute>
@@ -174,6 +182,10 @@ const routes: RouteObject[] = [
       {
         path: 'self-study',
         element: <SelfStudyPage />
+      },
+      {
+        path: 'microphone-test',
+        element: <MicrophoneTestPage />
       }
     ]
   },

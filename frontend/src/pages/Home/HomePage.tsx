@@ -1,4 +1,4 @@
-import { Space, Typography, Row, Col, Card, Statistic, Button, Progress, List, Tag } from 'antd'
+import { Typography, Row, Col, Card, Statistic, Progress, List, Tag } from 'antd'
 import { 
   BookOutlined, 
   UserOutlined, 
@@ -16,7 +16,7 @@ interface HomePageProps {
   onNavigate: (key: string) => void
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
+const HomePage: React.FC<HomePageProps> = ({ onNavigate: _onNavigate }) => {
   const recentActivities = [
     { 
       title: 'Hoàn thành bài tập Grammar Unit 5', 

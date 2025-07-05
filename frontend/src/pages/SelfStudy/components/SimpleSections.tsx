@@ -2,7 +2,7 @@ import React from 'react'
 import { Card, Typography, Button, Space } from 'antd'
 import { BookOutlined, PlayCircleOutlined } from '@ant-design/icons'
 
-const { Title, Paragraph } = Typography
+const { Paragraph } = Typography
 
 // Simple placeholder components for testing
 export const VocabularySection: React.FC = () => (

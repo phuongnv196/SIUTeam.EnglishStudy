@@ -13,7 +13,8 @@ import {
   SoundOutlined,
   EditOutlined,
   MessageOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  AudioOutlined
 } from '@ant-design/icons'
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -115,6 +116,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           label: 'Luyện tập kết hợp',
         },
       ]
+    },
+    {
+      key: '6',
+      icon: <AudioOutlined />,
+      label: 'Test Microphone',
     },
   ]
 

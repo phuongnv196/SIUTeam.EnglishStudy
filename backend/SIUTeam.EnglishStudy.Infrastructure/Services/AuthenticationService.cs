@@ -1,12 +1,14 @@
 using BCrypt.Net;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
 using SIUTeam.EnglishStudy.Core.Entities;
 using SIUTeam.EnglishStudy.Core.Interfaces.Repositories;
 using SIUTeam.EnglishStudy.Core.Interfaces.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.Extensions.Configuration;
+using System.Xml;
 
 namespace SIUTeam.EnglishStudy.Infrastructure.Services;
 
@@ -228,24 +230,22 @@ public class AuthenticationService : IAuthenticationService
     /// <returns>JWT token string</returns>
     private string GenerateJwtToken(User user)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(GetJwtSecret());
-        
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
-            }),
-            Expires = DateTime.UtcNow.AddDays(7), // Token valid for 7 days
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
+        var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetJwtSecret())), SecurityAlgorithms.HmacSha256);
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        var token = new JwtSecurityToken(
+            issuer: _configuration["JwtSettings:Issuer"],
+            audience: _configuration["JwtSettings:Audience"],
+            claims: [ 
+                new Claim(ClaimTypes.Name, user.Username), 
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Role, ((int)user.Role).ToString())
+            ],
+            expires: DateTime.Now.AddDays(1),
+            signingCredentials: creds
+        );
+
+        var jwtHandler = new JwtSecurityTokenHandler();
+        return jwtHandler.WriteToken(token);
     }
 
     /// <summary>
@@ -254,6 +254,11 @@ public class AuthenticationService : IAuthenticationService
     /// <returns>JWT secret string</returns>
     private string GetJwtSecret()
     {
-        return _configuration["JwtSettings:Secret"] ?? "SIUTeamEnglishStudySecretKey2024!@#$%^&*()";
+        var secretKey = _configuration["JwtSettings:Secret"];
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            throw new ArgumentException("JWT secret key must be at least 32 characters long.");
+        }
+        return secretKey;
     }
 }

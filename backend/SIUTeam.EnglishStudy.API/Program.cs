@@ -1,108 +1,90 @@
-using SIUTeam.EnglishStudy.Infrastructure.Extensions;
-using SIUTeam.EnglishStudy.Infrastructure.Authorization;
-using SIUTeam.EnglishStudy.Core.Authorization;
-using SIUTeam.EnglishStudy.Core.Enums;
-using SIUTeam.EnglishStudy.Core.Entities;
-using SIUTeam.EnglishStudy.API.Mapping;
-using SIUTeam.EnglishStudy.API.Hubs;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Logging;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SIUTeam.EnglishStudy.API.Hubs;
+using SIUTeam.EnglishStudy.API.Mapping;
+using SIUTeam.EnglishStudy.Core.Authorization;
+using SIUTeam.EnglishStudy.Core.Entities;
+using SIUTeam.EnglishStudy.Core.Enums;
+using SIUTeam.EnglishStudy.Infrastructure.Authorization;
+using SIUTeam.EnglishStudy.Infrastructure.Extensions;
+using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
-
+IdentityModelEventSource.ShowPII = true;
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["Secret"] ?? "SIUTeamEnglishStudySecretKey2024!@#$%^&*()";
-var key = Encoding.ASCII.GetBytes(secretKey);
+var jwtKey = jwtSettings["Secret"];
+var jwtIssuer = jwtSettings["Issuer"];
+var jwtAudience = jwtSettings["Audience"];
 
-builder.Services.AddAuthentication(x =>
+if (string.IsNullOrWhiteSpace(jwtKey))
 {
-    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    throw new ArgumentException("JWT secret key must be at least 32 characters long.");
+}
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(x =>
+.AddJwtBearer(options =>
 {
-    x.RequireHttpsMetadata = false; // Set to true in production
-    x.SaveToken = true;
-    x.TokenValidationParameters = new TokenValidationParameters
+    options.TokenValidationParameters = new TokenValidationParameters
     {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ClockSkew = TimeSpan.Zero
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ClockSkew = TimeSpan.Zero,
+        NameClaimType = ClaimTypes.Name
     };
-    
-    // Configure JWT for SignalR
-    x.Events = new JwtBearerEvents
+
+    options.Events = new JwtBearerEvents
     {
-        OnMessageReceived = context =>
+        OnTokenValidated = x =>
         {
-            var accessToken = context.Request.Query["access_token"];
-            var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-            {
-                context.Token = accessToken;
-            }
+            Console.WriteLine("Token validated successfully.");
+            var jwtToken = x.SecurityToken as JwtSecurityToken;
             return Task.CompletedTask;
         },
-        OnChallenge = context =>
+        OnAuthenticationFailed = x =>
         {
-            // Skip JWT authentication challenge for SignalR hubs
-            var path = context.HttpContext.Request.Path;
-            if (path.StartsWithSegments("/hubs"))
+            Console.WriteLine($"Authentication failed: {x.Exception}");
+            return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"];
+            if (context.Request.Path.StartsWithSegments("/hubs") && string.IsNullOrEmpty(context.Token))
             {
-                context.HandleResponse();
-                return Task.CompletedTask;
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                }
+                else if (!string.IsNullOrWhiteSpace(token))
+                {
+                    context.Token = token;
+                }
             }
             return Task.CompletedTask;
         }
     };
 });
-
-// Configure Authorization with custom policies
-builder.Services.AddAuthorization(options =>
-{
-    // Add permission-based policies
-    foreach (Permission permission in Enum.GetValues<Permission>())
-    {
-        options.AddPolicy($"Permission.{permission}", policy =>
-            policy.Requirements.Add(new PermissionRequirement(permission)));
-    }
-
-    // Add role-based policies
-    foreach (UserRole role in Enum.GetValues<UserRole>())
-    {
-        options.AddPolicy($"Role.{role}", policy =>
-            policy.Requirements.Add(new RoleRequirement(role)));
-    }
-
-    // Add default policies
-    options.AddPolicy("RequireAuthentication", policy =>
-        policy.RequireAuthenticatedUser());
-    
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole(UserRole.Admin.ToString()));
-    
-    options.AddPolicy("TeacherOrAdmin", policy =>
-        policy.RequireRole(UserRole.Teacher.ToString(), UserRole.Admin.ToString()));
-        
-    // Add policy for SignalR anonymous access
-    options.AddPolicy("SignalRAnonymous", policy =>
-        policy.RequireAssertion(_ => true)); // Always allow
-});
-
-// Register authorization handlers
-builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-builder.Services.AddScoped<IAuthorizationHandler, RoleAuthorizationHandler>();
-builder.Services.AddScoped<IAuthorizationHandler, ResourceAuthorizationHandler>();
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -184,6 +166,8 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 // Add Mapster mapping profiles
 builder.Services.AddMappingProfiles();
 
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -207,27 +191,13 @@ app.UseCors("AllowSpecificOrigin");
 
 app.UseHttpsRedirection();
 
-// Custom middleware to bypass authentication for SignalR negotiate
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/hubs/speaking/negotiate"))
-    {
-        // Skip authentication for SignalR negotiate endpoint
-        await next();
-    }
-    else
-    {
-        await next();
-    }
-});
-
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// Map SignalR hubs
-app.MapHub<SpeakingHub>("/hubs/speaking").AllowAnonymous();
+// Map SignalR hubs - Use flexible authentication policy
+app.MapHub<SpeakingHub>("/hubs/speaking").RequireAuthorization();
 
 app.Run();
