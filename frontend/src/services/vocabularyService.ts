@@ -140,17 +140,22 @@ class VocabularyService {
     const response = await api.get<{ [key: string]: number }>(`${this.baseUrl}/stats`)
     const stats = response.data
     
-    const totalWords = stats.TotalWords || 0
-    const learnedWords = stats.LearnedWords || 0
-    const progressPercentage = totalWords > 0 ? Math.round((learnedWords / totalWords) * 100) : 0
+    // Calculate total words and learned words from all topics
+    let totalWords = 0
+    let learnedWords = 0
     
-    // Extract topic stats (remove total stats)
+    // Extract topic stats and calculate totals
     const topicStats: { [topic: string]: number } = {}
     Object.keys(stats).forEach(key => {
-      if (key !== 'TotalWords' && key !== 'LearnedWords') {
-        topicStats[key] = stats[key]
+      if (key.endsWith('_total')) {
+        totalWords += stats[key]
+      } else if (key.endsWith('_learned')) {
+        learnedWords += stats[key]
       }
+      topicStats[key] = stats[key]
     })
+    
+    const progressPercentage = totalWords > 0 ? Math.round((learnedWords / totalWords) * 100) : 0
 
     return {
       totalWords,

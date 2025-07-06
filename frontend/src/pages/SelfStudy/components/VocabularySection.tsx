@@ -11,11 +11,13 @@ import {
   LoadingOutlined,
   PhoneOutlined,
   StopOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  FileTextOutlined
 } from '@ant-design/icons'
 import { useSpeakingHub } from '../../../hooks/useSpeakingHub'
 import textToSpeechService from '../../../services/textToSpeechService'
 import vocabularyService from '../../../services/vocabularyService'
+import FlashcardStudy from '../../../components/Flashcard/FlashcardStudy'
 import type { VocabularyItem, VocabularyStats } from '../../../services/vocabularyService'
 
 const { Title, Paragraph, Text } = Typography
@@ -36,6 +38,10 @@ const VocabularySection: React.FC = () => {
   const [topics, setTopics] = useState<Array<{ key: string; label: string; color: string; progress: number }>>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<VocabularyStats | null>(null)
+  
+  // Flashcard Study State
+  const [showFlashcardStudy, setShowFlashcardStudy] = useState(false)
+  const [studyItems, setStudyItems] = useState<VocabularyItem[]>([])
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -130,6 +136,11 @@ const VocabularySection: React.FC = () => {
         setSelectedWord({ ...selectedWord, learned: newLearnedStatus })
       }
       
+      // Update study items if flashcard is open
+      setStudyItems(prev => 
+        prev.map(v => v.id === item.id ? { ...v, learned: newLearnedStatus } : v)
+      )
+      
       message.success(newLearnedStatus ? 'Đã đánh dấu đã học' : 'Đã bỏ đánh dấu đã học')
       
       // Refresh stats and topics
@@ -155,6 +166,29 @@ const VocabularySection: React.FC = () => {
       console.error('Error marking as learned:', error)
       message.error('Không thể cập nhật trạng thái học')
     }
+  }
+
+  const startFlashcardStudy = (studyType: 'all' | 'unlearned' = 'all') => {
+    const itemsToStudy = studyType === 'unlearned' 
+      ? filteredVocab.filter(item => !item.learned)
+      : filteredVocab
+
+    if (itemsToStudy.length === 0) {
+      message.info('Không có từ vựng nào để học!')
+      return
+    }
+
+    // Shuffle the items for better learning experience
+    const shuffledItems = [...itemsToStudy].sort(() => Math.random() - 0.5)
+    setStudyItems(shuffledItems)
+    setShowFlashcardStudy(true)
+  }
+
+  const closeFlashcardStudy = () => {
+    setShowFlashcardStudy(false)
+    setStudyItems([])
+    // Refresh data after study session
+    loadInitialData()
   }
 
   // Check Python API health on component mount
@@ -348,6 +382,17 @@ const VocabularySection: React.FC = () => {
                     >
                       Refresh Data
                     </Button>
+                    <Button 
+                      size="small" 
+                      type="dashed"
+                      onClick={() => {
+                        const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoicGh1b25nbnYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjllOWRiZDYyLTkwMTQtNDQwMi04NjMxLWYzYmYyMmFjNTNjMiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IjAiLCJleHAiOjE3NTE4MjMyNDcsImlzcyI6IlNJVVRlYW0uRW5nbGlzaFN0dWR5LkFQSS5ERVYiLCJhdWQiOiJTSVVUZWFtLkVuZ2xpc2hTdHVkeS5DbGllbnQuREVWIn0.vgef50Qrz7No1g-d2ySfFXnKYpqz85QRkKIwWiAEaO0'
+                        localStorage.setItem('token', token)
+                        message.success('Debug token set! Refresh để test API.')
+                      }}
+                    >
+                      🔑 Set Debug Token
+                    </Button>
                   </Space>
                 </div>
               </div>
@@ -453,6 +498,21 @@ const VocabularySection: React.FC = () => {
                     border: selectedTopic === topic.key ? `2px solid ${topic.color}` : '1px solid #d9d9d9'
                   }}
                   onClick={() => setSelectedTopic(topic.key)}
+                  actions={[
+                    <Button 
+                      key="study"
+                      size="small" 
+                      type="text"
+                      icon={<PlayCircleOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedTopic(topic.key)
+                        setTimeout(() => startFlashcardStudy('all'), 100)
+                      }}
+                    >
+                      Học
+                    </Button>
+                  ]}
                 >
                   <div style={{ textAlign: 'center' }}>
                     <Text strong style={{ color: topic.color }}>{topic.label}</Text>
@@ -482,9 +542,23 @@ const VocabularySection: React.FC = () => {
             </Space>
           }
           extra={
-            <Button type="primary" icon={<PlayCircleOutlined />}>
-              Bắt đầu học
-            </Button>
+            <Space>
+              <Button 
+                type="primary" 
+                icon={<PlayCircleOutlined />}
+                onClick={() => startFlashcardStudy('all')}
+                disabled={filteredVocab.length === 0}
+              >
+                Học Flashcard
+              </Button>
+              <Button 
+                icon={<FileTextOutlined />}
+                onClick={() => startFlashcardStudy('unlearned')}
+                disabled={filteredVocab.filter(v => !v.learned).length === 0}
+              >
+                Học từ chưa biết
+              </Button>
+            </Space>
           }
         >
           <List
@@ -791,6 +865,16 @@ const VocabularySection: React.FC = () => {
         </Space>
       </Modal>
         </>
+      )}
+
+      {/* Flashcard Study Modal */}
+      {showFlashcardStudy && (
+        <FlashcardStudy
+          vocabularyItems={studyItems}
+          topic={currentTopic?.label || selectedTopic}
+          onClose={closeFlashcardStudy}
+          onMarkAsLearned={handleMarkAsLearned}
+        />
       )}
     </div>
   )
