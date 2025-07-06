@@ -10,34 +10,32 @@ import {
   ExperimentOutlined,
   LoadingOutlined,
   PhoneOutlined,
-  StopOutlined
+  StopOutlined,
+  ReloadOutlined
 } from '@ant-design/icons'
 import { useSpeakingHub } from '../../../hooks/useSpeakingHub'
 import textToSpeechService from '../../../services/textToSpeechService'
+import vocabularyService from '../../../services/vocabularyService'
+import type { VocabularyItem, VocabularyStats } from '../../../services/vocabularyService'
 
 const { Title, Paragraph, Text } = Typography
-
-interface VocabularyItem {
-  id: number
-  word: string
-  pronunciation: string
-  meaning: string
-  example: string
-  level: string
-  topic: string
-  learned: boolean
-}
 
 const VocabularySection: React.FC = () => {
   const [selectedTopic, setSelectedTopic] = useState('business')
   const [viewModalVisible, setViewModalVisible] = useState(false)
   const [selectedWord, setSelectedWord] = useState<VocabularyItem | null>(null)
   const [testModalVisible, setTestModalVisible] = useState(false)
-  const [loadingPronunciation, setLoadingPronunciation] = useState<number | null>(null)
+  const [loadingPronunciation, setLoadingPronunciation] = useState<string | null>(null)
   const [pythonApiHealthy, setPythonApiHealthy] = useState<boolean | null>(null)
   const [_isRecording, setIsRecording] = useState(false)
-  const [recordingWordId, setRecordingWordId] = useState<number | null>(null)
+  const [recordingWordId, setRecordingWordId] = useState<string | null>(null)
   const [lastTranscription, setLastTranscription] = useState<string>('')
+  
+  // API Data State
+  const [vocabularyData, setVocabularyData] = useState<VocabularyItem[]>([])
+  const [topics, setTopics] = useState<Array<{ key: string; label: string; color: string; progress: number }>>([])
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<VocabularyStats | null>(null)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -60,6 +58,105 @@ const VocabularySection: React.FC = () => {
     lastTranscription: hubTranscription
   } = useSpeakingHub()
 
+  // Load initial data
+  useEffect(() => {
+    loadInitialData()
+  }, [])
+
+  // Load vocabulary data when topic changes
+  useEffect(() => {
+    if (selectedTopic) {
+      loadVocabularyByTopic(selectedTopic)
+    }
+  }, [selectedTopic])
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true)
+      
+      // Load topics and stats
+      const [topicsData, statsData] = await Promise.all([
+        vocabularyService.getTopics(),
+        vocabularyService.getStats()
+      ])
+
+      // Convert API topics to UI format
+      const staticTopics = vocabularyService.getAvailableTopics()
+      const topicsWithProgress = staticTopics.map(staticTopic => {
+        const apiTopic = topicsData.find(t => t.key === staticTopic.key)
+        const progress = apiTopic ? apiTopic.progress : 0
+        return {
+          ...staticTopic,
+          progress
+        }
+      })
+
+      setTopics(topicsWithProgress)
+      setStats(statsData)
+      
+      // Load vocabulary for default topic
+      await loadVocabularyByTopic(selectedTopic)
+      
+    } catch (error) {
+      console.error('Error loading initial data:', error)
+      message.error('Không thể tải dữ liệu từ phát âm')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadVocabularyByTopic = async (topic: string) => {
+    try {
+      const data = await vocabularyService.getByTopic(topic)
+      setVocabularyData(data)
+    } catch (error) {
+      console.error('Error loading vocabulary by topic:', error)
+      message.error('Không thể tải từ vựng theo chủ đề')
+    }
+  }
+
+  const handleMarkAsLearned = async (item: VocabularyItem) => {
+    try {
+      const newLearnedStatus = !item.learned
+      await vocabularyService.markAsLearned(item.id, newLearnedStatus)
+      
+      // Update local state
+      setVocabularyData(prev => 
+        prev.map(v => v.id === item.id ? { ...v, learned: newLearnedStatus } : v)
+      )
+      
+      // Update selected word if it's the same item
+      if (selectedWord?.id === item.id) {
+        setSelectedWord({ ...selectedWord, learned: newLearnedStatus })
+      }
+      
+      message.success(newLearnedStatus ? 'Đã đánh dấu đã học' : 'Đã bỏ đánh dấu đã học')
+      
+      // Refresh stats and topics
+      const [topicsData, statsData] = await Promise.all([
+        vocabularyService.getTopics(),
+        vocabularyService.getStats()
+      ])
+      
+      const staticTopics = vocabularyService.getAvailableTopics()
+      const topicsWithProgress = staticTopics.map(staticTopic => {
+        const apiTopic = topicsData.find(t => t.key === staticTopic.key)
+        const progress = apiTopic ? apiTopic.progress : 0
+        return {
+          ...staticTopic,
+          progress
+        }
+      })
+      
+      setTopics(topicsWithProgress)
+      setStats(statsData)
+      
+    } catch (error) {
+      console.error('Error marking as learned:', error)
+      message.error('Không thể cập nhật trạng thái học')
+    }
+  }
+
   // Check Python API health on component mount
   useEffect(() => {
     const checkHealth = async () => {
@@ -69,57 +166,6 @@ const VocabularySection: React.FC = () => {
     checkHealth()
   }, [])
 
-  const topics = [
-    { key: 'business', label: 'Business', color: '#1890ff', progress: 75 },
-    { key: 'travel', label: 'Travel', color: '#52c41a', progress: 85 },
-    { key: 'technology', label: 'Technology', color: '#fa8c16', progress: 60 },
-    { key: 'daily', label: 'Daily Life', color: '#eb2f96', progress: 90 },
-    { key: 'academic', label: 'Academic', color: '#722ed1', progress: 45 }
-  ]
-
-  const vocabularyData: VocabularyItem[] = [
-    {
-      id: 1,
-      word: 'entrepreneur',
-      pronunciation: '/ˌɒntrəprəˈnɜː(r)/',
-      meaning: 'Doanh nhân, người khởi nghiệp',
-      example: 'She is a successful entrepreneur who started three companies.',
-      level: 'Advanced',
-      topic: 'business',
-      learned: true
-    },
-    {
-      id: 2,
-      word: 'innovative',
-      pronunciation: '/ˈɪnəveɪtɪv/',
-      meaning: 'Sáng tạo, đổi mới',
-      example: 'The company is known for its innovative products.',
-      level: 'Intermediate',
-      topic: 'business',
-      learned: false
-    },
-    {
-      id: 3,
-      word: 'collaboration',
-      pronunciation: '/kəˌlæbəˈreɪʃn/',
-      meaning: 'Sự hợp tác, cộng tác',
-      example: 'The project was successful due to great collaboration.',
-      level: 'Intermediate',
-      topic: 'business',
-      learned: true
-    },
-    {
-      id: 4,
-      word: 'itinerary',
-      pronunciation: '/aɪˈtɪnərəri/',
-      meaning: 'Lịch trình du lịch',
-      example: 'We need to plan our itinerary for the Europe trip.',
-      level: 'Intermediate',
-      topic: 'travel',
-      learned: false
-    }
-  ]
-
   const currentTopic = topics.find(t => t.key === selectedTopic)
   const filteredVocab = vocabularyData.filter(item => item.topic === selectedTopic)
 
@@ -128,7 +174,7 @@ const VocabularySection: React.FC = () => {
     setViewModalVisible(true)
   }
 
-  const playPronunciation = async (word: string, wordId: number) => {
+  const playPronunciation = async (word: string, wordId: string) => {
     setLoadingPronunciation(wordId)
     try {
       // Use browser speech synthesis first
@@ -162,7 +208,7 @@ const VocabularySection: React.FC = () => {
   }
 
   // Speaking test function
-  const handleSpeakingTest = async (word: string, wordId: number) => {
+  const handleSpeakingTest = async (word: string, wordId: string) => {
     if (!isConnected) {
       message.info('Đang kết nối SignalR...')
       await connect()
@@ -180,7 +226,7 @@ const VocabularySection: React.FC = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       
       // Start speaking session (lessonId can be wordId, expectedText is the word)
-      await startSpeakingSession(wordId.toString(), word)
+      await startSpeakingSession(wordId, word)
       
       // Setup MediaRecorder for chunked recording
       const mediaRecorder = new MediaRecorder(stream, {
@@ -294,6 +340,14 @@ const VocabularySection: React.FC = () => {
                       <ExperimentOutlined />
                       Test Features
                     </Button>
+                    <Button 
+                      size="small" 
+                      icon={<ReloadOutlined />}
+                      onClick={loadInitialData}
+                      loading={loading}
+                    >
+                      Refresh Data
+                    </Button>
                   </Space>
                 </div>
               </div>
@@ -341,13 +395,57 @@ const VocabularySection: React.FC = () => {
         </Row>
       )}
 
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
-          <Title level={4}>📚 Chọn chủ đề từ vựng</Title>
-          <Row gutter={[12, 12]}>
-            {topics.map(topic => (
-              <Col key={topic.key} xs={24} sm={12} md={8} lg={6}>
-                <Card 
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '16px' }}>Đang tải dữ liệu từ vựng...</div>
+        </div>
+      ) : (
+        <>
+          {/* Statistics Section */}
+          {stats && (
+            <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+              <Col span={24}>
+                <Card title="📊 Thống kê học tập">
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={8}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1890ff' }}>
+                          {stats.totalWords}
+                        </div>
+                        <div>Tổng từ vựng</div>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
+                          {stats.learnedWords}
+                        </div>
+                        <div>Đã học</div>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#fa8c16' }}>
+                          {stats.progressPercentage}%
+                        </div>
+                        <div>Tiến độ</div>
+                      </div>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
+          )}
+
+          {/* Topics Section */}
+          <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+            <Col span={24}>
+              <Title level={4}>📚 Chọn chủ đề từ vựng</Title>
+              <Row gutter={[12, 12]}>
+                {topics.map(topic => (
+                  <Col key={topic.key} xs={24} sm={12} md={8} lg={6}>
+                    <Card 
                   size="small"
                   className={selectedTopic === topic.key ? 'selected-topic' : ''}
                   style={{ 
@@ -431,14 +529,22 @@ const VocabularySection: React.FC = () => {
               >
                 <List.Item.Meta
                   avatar={
-                    item.learned ? 
-                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '20px' }} /> :
-                    <div style={{ 
-                      width: '20px', 
-                      height: '20px', 
-                      border: '2px solid #d9d9d9', 
-                      borderRadius: '50%' 
-                    }} />
+                    <div 
+                      style={{ 
+                        width: '20px', 
+                        height: '20px', 
+                        borderRadius: '50%',
+                        background: item.learned ? '#52c41a' : 'transparent',
+                        border: item.learned ? 'none' : '2px solid #d9d9d9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleMarkAsLearned(item)}
+                    >
+                      {item.learned && <CheckCircleOutlined style={{ color: 'white', fontSize: '12px' }} />}
+                    </div>
                   }
                   title={
                     <Space>
@@ -684,6 +790,8 @@ const VocabularySection: React.FC = () => {
           </Card>
         </Space>
       </Modal>
+        </>
+      )}
     </div>
   )
 }

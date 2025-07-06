@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using SIUTeam.EnglishStudy.Core.DTOs;
 using SIUTeam.EnglishStudy.Core.Entities;
+using SIUTeam.EnglishStudy.Core.DTOs;
 
 namespace SIUTeam.EnglishStudy.API.Controllers;
 

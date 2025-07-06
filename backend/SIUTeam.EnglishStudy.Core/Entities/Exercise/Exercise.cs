@@ -44,13 +44,3 @@ public class Exercise : BaseEntity
     [BsonIgnore]
     public ICollection<UserAnswer> UserAnswers { get; set; } = new List<UserAnswer>();
 }
-
-public enum ExerciseType
-{
-    MultipleChoice,
-    FillInTheBlank,
-    TrueFalse,
-    Essay,
-    Listening,
-    Speaking
-}

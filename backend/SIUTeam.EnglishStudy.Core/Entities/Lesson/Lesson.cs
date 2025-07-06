@@ -44,10 +44,3 @@ public class Lesson : BaseEntity
     [BsonIgnore]
     public ICollection<StudySession> StudySessions { get; set; } = new List<StudySession>();
 }
-
-public enum LessonLevel
-{
-    Beginner,
-    Intermediate,
-    Advanced
-}

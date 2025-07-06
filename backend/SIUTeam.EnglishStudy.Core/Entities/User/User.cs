@@ -44,21 +44,3 @@ public class User : BaseEntity
     [BsonIgnore]
     public ICollection<UserProgress> UserProgresses { get; set; } = new List<UserProgress>();
 }
-
-public enum UserRole
-{
-    Student,
-    Teacher,
-    Admin
-}
-
-// Attribute to specify MongoDB collection name
-public class BsonCollectionAttribute : Attribute
-{
-    public string CollectionName { get; }
-
-    public BsonCollectionAttribute(string collectionName)
-    {
-        CollectionName = collectionName;
-    }
-}

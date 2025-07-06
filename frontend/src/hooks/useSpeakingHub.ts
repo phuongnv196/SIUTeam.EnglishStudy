@@ -89,7 +89,7 @@ export const useSpeakingHub = () => {
     
     try {
       // Get token from parameter or localStorage
-      const authToken = token || localStorage.getItem('auth_token')
+      const authToken = token || localStorage.getItem('token')
       
       let hubUrl = 'http://localhost:5073/hubs/speaking'
       

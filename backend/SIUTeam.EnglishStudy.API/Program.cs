@@ -1,16 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Logging;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SIUTeam.EnglishStudy.API.Hubs;
 using SIUTeam.EnglishStudy.API.Mapping;
-using SIUTeam.EnglishStudy.Core.Authorization;
-using SIUTeam.EnglishStudy.Core.Entities;
-using SIUTeam.EnglishStudy.Core.Enums;
-using SIUTeam.EnglishStudy.Infrastructure.Authorization;
 using SIUTeam.EnglishStudy.Infrastructure.Extensions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
@@ -150,7 +143,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3001", "https://localhost:5174") // Add your frontend URLs
+        policy.WithOrigins("http://localhost:3000", "https://localhost:3001", "https://localhost:5174", "http://localhost:5073") // Add your frontend URLs
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Required for SignalR
@@ -201,3 +194,6 @@ app.MapControllers();
 app.MapHub<SpeakingHub>("/hubs/speaking").RequireAuthorization();
 
 app.Run();
+
+// Make Program class accessible for integration tests
+public partial class Program { }

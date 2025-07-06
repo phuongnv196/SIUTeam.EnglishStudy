@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using SIUTeam.EnglishStudy.Core.Interfaces;
 using SIUTeam.EnglishStudy.Core.Interfaces.Repositories;
 using SIUTeam.EnglishStudy.Core.Interfaces.Services;
@@ -15,6 +18,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // Configure MongoDB GUID representation
+        BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+        
         // Configure MongoDB settings
         services.Configure<MongoDbSettings>(configuration.GetSection("MongoDbSettings"));
         
@@ -29,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStudySessionRepository, StudySessionRepository>();
         services.AddScoped<IUserProgressRepository, UserProgressRepository>();
         services.AddScoped<IUserAnswerRepository, UserAnswerRepository>();
+        services.AddScoped<IVocabularyRepository, VocabularyRepository>();
         
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -39,6 +46,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<IStudyService, StudyService>();
+        services.AddScoped<IVocabularyService, VocabularyService>();
         
         // Register HTTP client for SpeakingService
         services.AddHttpClient<ISpeakingService, SpeakingService>();

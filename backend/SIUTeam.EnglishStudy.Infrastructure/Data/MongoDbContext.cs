@@ -23,6 +23,7 @@ public class MongoDbContext
     public IMongoCollection<StudySession> StudySessions => GetCollection<StudySession>();
     public IMongoCollection<UserAnswer> UserAnswers => GetCollection<UserAnswer>();
     public IMongoCollection<UserProgress> UserProgresses => GetCollection<UserProgress>();
+    public IMongoCollection<VocabularyItem> VocabularyItems => GetCollection<VocabularyItem>();
 
     private IMongoCollection<T> GetCollection<T>() where T : BaseEntity
     {
