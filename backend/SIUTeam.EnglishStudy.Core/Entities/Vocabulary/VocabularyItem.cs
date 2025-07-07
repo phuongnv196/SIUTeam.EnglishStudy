@@ -28,5 +28,6 @@ public class VocabularyItem : BaseEntity
     public bool Learned { get; set; }
 
     [BsonElement("user_id")]
+    [BsonRepresentation(BsonType.String)]
     public Guid? UserId { get; set; }
 }

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SIUTeam.EnglishStudy.Core.DTOs;
 using SIUTeam.EnglishStudy.Core.DTOs.Vocabulary;
+using SIUTeam.EnglishStudy.Core.Interfaces.Integrations;
 using SIUTeam.EnglishStudy.Core.Interfaces.Services;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
@@ -10,17 +12,10 @@ namespace SIUTeam.EnglishStudy.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class VocabularyController : ControllerBase
+public class VocabularyController(IVocabularyService vocabularyService, 
+    ILogger<VocabularyController> logger,
+    ICambridgeService cambridgeService) : ControllerBase
 {
-    private readonly IVocabularyService _vocabularyService;
-    private readonly ILogger<VocabularyController> _logger;
-
-    public VocabularyController(IVocabularyService vocabularyService, ILogger<VocabularyController> logger)
-    {
-        _vocabularyService = vocabularyService;
-        _logger = logger;
-    }
-
     /// <summary>
     /// Get all vocabulary items for the current user
     /// </summary>
@@ -33,12 +28,12 @@ public class VocabularyController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            var vocabularyItems = await _vocabularyService.GetByUserIdAsync(userId);
+            var vocabularyItems = await vocabularyService.GetByUserIdAsync(userId);
             return Ok(vocabularyItems);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving vocabulary items");
+            logger.LogError(ex, "Error retrieving vocabulary items");
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -55,12 +50,12 @@ public class VocabularyController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            var vocabularyItems = await _vocabularyService.GetByTopicAsync(topic, userId);
+            var vocabularyItems = await vocabularyService.GetByTopicAsync(topic, userId);
             return Ok(vocabularyItems);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving vocabulary items by topic: {Topic}", topic);
+            logger.LogError(ex, "Error retrieving vocabulary items by topic: {Topic}", topic);
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -78,12 +73,12 @@ public class VocabularyController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            var vocabularyItems = await _vocabularyService.GetByLevelAsync(level, userId);
+            var vocabularyItems = await vocabularyService.GetByLevelAsync(level, userId);
             return Ok(vocabularyItems);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving vocabulary items by level: {Level}", level);
+            logger.LogError(ex, "Error retrieving vocabulary items by level: {Level}", level);
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -100,7 +95,7 @@ public class VocabularyController : ControllerBase
     {
         try
         {
-            var vocabularyItem = await _vocabularyService.GetByIdAsync(id);
+            var vocabularyItem = await vocabularyService.GetByIdAsync(id);
             if (vocabularyItem == null)
             {
                 return NotFound(new { Error = "Vocabulary item not found" });
@@ -110,7 +105,7 @@ public class VocabularyController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving vocabulary item: {Id}", id);
+            logger.LogError(ex, "Error retrieving vocabulary item: {Id}", id);
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -128,7 +123,7 @@ public class VocabularyController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            var vocabularyItem = await _vocabularyService.GetByWordAsync(word, userId);
+            var vocabularyItem = await vocabularyService.GetByWordAsync(word, userId);
             if (vocabularyItem == null)
             {
                 return NotFound(new { Error = "Vocabulary item not found" });
@@ -138,7 +133,7 @@ public class VocabularyController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching vocabulary item: {Word}", word);
+            logger.LogError(ex, "Error searching vocabulary item: {Word}", word);
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -161,12 +156,12 @@ public class VocabularyController : ControllerBase
             }
 
             var userId = GetCurrentUserId();
-            var vocabularyItem = await _vocabularyService.CreateAsync(createDto, userId);
+            var vocabularyItem = await vocabularyService.CreateAsync(createDto, userId);
             return CreatedAtAction(nameof(GetVocabularyItem), new { id = vocabularyItem.Id }, vocabularyItem);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating vocabulary item");
+            logger.LogError(ex, "Error creating vocabulary item");
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -189,7 +184,7 @@ public class VocabularyController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            var vocabularyItem = await _vocabularyService.UpdateAsync(id, updateDto);
+            var vocabularyItem = await vocabularyService.UpdateAsync(id, updateDto);
             if (vocabularyItem == null)
             {
                 return NotFound(new { Error = "Vocabulary item not found" });
@@ -199,7 +194,7 @@ public class VocabularyController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating vocabulary item: {Id}", id);
+            logger.LogError(ex, "Error updating vocabulary item: {Id}", id);
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -216,7 +211,7 @@ public class VocabularyController : ControllerBase
     {
         try
         {
-            var success = await _vocabularyService.DeleteAsync(id);
+            var success = await vocabularyService.DeleteAsync(id);
             if (!success)
             {
                 return NotFound(new { Error = "Vocabulary item not found" });
@@ -226,7 +221,7 @@ public class VocabularyController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting vocabulary item: {Id}", id);
+            logger.LogError(ex, "Error deleting vocabulary item: {Id}", id);
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -243,7 +238,7 @@ public class VocabularyController : ControllerBase
     {
         try
         {
-            var success = await _vocabularyService.MarkAsLearnedAsync(id, learned);
+            var success = await vocabularyService.MarkAsLearnedAsync(id, learned);
             if (!success)
             {
                 return NotFound(new { Error = "Vocabulary item not found" });
@@ -253,7 +248,7 @@ public class VocabularyController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating vocabulary item status: {Id}", id);
+            logger.LogError(ex, "Error updating vocabulary item status: {Id}", id);
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -270,12 +265,12 @@ public class VocabularyController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            var topics = await _vocabularyService.GetTopicsWithStatsAsync(userId);
+            var topics = await vocabularyService.GetTopicsWithStatsAsync(userId);
             return Ok(topics);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving vocabulary topics");
+            logger.LogError(ex, "Error retrieving vocabulary topics");
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -292,12 +287,12 @@ public class VocabularyController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            var stats = await _vocabularyService.GetTopicStatsAsync(userId);
+            var stats = await vocabularyService.GetTopicStatsAsync(userId);
             return Ok(stats);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving vocabulary statistics");
+            logger.LogError(ex, "Error retrieving vocabulary statistics");
             return StatusCode(500, new { Error = "Internal server error" });
         }
     }
@@ -310,5 +305,26 @@ public class VocabularyController : ControllerBase
             throw new UnauthorizedAccessException("User ID not found in token");
         }
         return userIdClaim;
+    }
+
+    [HttpGet("get-word-detail")]
+    [SwaggerOperation(Summary = "Get vocabulary detail", Description = "get-word-detail")]
+    [SwaggerResponse(200, "Statistics retrieved successfully", typeof(Dictionary<string, int>))]
+    [SwaggerResponse(401, "Unauthorized")]
+    public async Task<List<CambridgeDictionaryDto>> GetWordDetailsAsync(string word, string region = "us")
+    {
+        var result = await cambridgeService.GetWordDetailsAsync(word, region);
+        
+        return await cambridgeService.GetWordDetailsAsync(word, region);
+    }
+
+    [HttpGet("get-audio")]
+    [SwaggerOperation(Summary = "Get audio", Description = "get-audio")]
+    [SwaggerResponse(200, "Statistics retrieved successfully", typeof(Dictionary<string, int>))]
+    [SwaggerResponse(401, "Unauthorized")]
+    public async Task<IActionResult> GetAudio(string audioKey)
+    {
+        var audioStream = await cambridgeService.GetAudioAsync(audioKey);
+        return File(audioStream, "audio/mpeg");
     }
 }

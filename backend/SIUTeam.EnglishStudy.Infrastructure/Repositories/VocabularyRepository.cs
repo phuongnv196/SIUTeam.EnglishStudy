@@ -200,4 +200,9 @@ public class VocabularyRepository : IVocabularyRepository
 
         return stats;
     }
+
+    public async Task DeleteAllAsync()
+    {
+        await _vocabularyItems.DeleteManyAsync(_ => true);
+    }
 }

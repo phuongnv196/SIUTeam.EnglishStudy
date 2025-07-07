@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 // Auth Service
 export class AuthService {
-  private static TOKEN_KEY = 'auth_token'
+  private static TOKEN_KEY = 'token'
   private static REFRESH_TOKEN_KEY = 'refresh_token'
   private static USER_KEY = 'user_data'
 

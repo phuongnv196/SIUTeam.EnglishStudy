@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using SIUTeam.EnglishStudy.Infrastructure.Data;
 using SIUTeam.EnglishStudy.Infrastructure.Data.Configuration;
 using SIUTeam.EnglishStudy.Infrastructure.Repositories;
+using SIUTeam.EnglishStudy.Infrastructure.Data.Seeders;
 
 
 var services = new ServiceCollection();
@@ -20,4 +21,4 @@ var appDataContext = new MongoDbContext(serviceProvider.GetRequiredService<IOpti
 
 var vocabularyRepository = new VocabularyRepository(appDataContext);
 
-await VocabularySeeder.SeedAsync(vocabularyRepository);
+await SIUTeam.EnglishStudy.Infrastructure.Data.Seeders.VocabularySeeder.SeedAsync(vocabularyRepository, appDataContext);

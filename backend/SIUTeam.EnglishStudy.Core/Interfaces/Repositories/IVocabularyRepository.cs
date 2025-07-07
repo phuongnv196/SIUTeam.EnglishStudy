@@ -14,4 +14,5 @@ public interface IVocabularyRepository
     Task<bool> MarkAsLearnedAsync(Guid id, bool learned = true);
     Task<IEnumerable<string>> GetTopicsAsync(Guid? userId = null);
     Task<Dictionary<string, int>> GetTopicStatsAsync(Guid? userId = null);
+    Task DeleteAllAsync();
 }

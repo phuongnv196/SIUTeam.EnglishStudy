@@ -4,7 +4,9 @@ using Microsoft.Extensions.Http;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using SIUTeam.EnglishStudy.Core.Helpers;
 using SIUTeam.EnglishStudy.Core.Interfaces;
+using SIUTeam.EnglishStudy.Core.Interfaces.Integrations;
 using SIUTeam.EnglishStudy.Core.Interfaces.Repositories;
 using SIUTeam.EnglishStudy.Core.Interfaces.Services;
 using SIUTeam.EnglishStudy.Infrastructure.Data;
@@ -47,9 +49,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<IStudyService, StudyService>();
         services.AddScoped<IVocabularyService, VocabularyService>();
+        services.AddSingleton<CryptoString>();
         
         // Register HTTP client for SpeakingService
         services.AddHttpClient<ISpeakingService, SpeakingService>();
+        services.AddHttpClient<ICambridgeService, CambridgeService>();
 
         return services;
     }
